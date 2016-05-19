@@ -1,7 +1,33 @@
-###########################################
-######Markov Chain Monte Carlo in C++######
-###########################################
+############################################################
+######Markov Chain Monte Carlo in R and C++ (via Rcpp)######
+############################################################
 
+library(Rcpp)
+
+
+
+
+#target is the density to be approximated
+#thetaStart is the initial parameter values
+#proposalSD is initial SD of each parameter in the multivariate gaussian proposal distribution
+#limits is list of lowLim and upLim for truncated proposal distribution; if not given, both set to -/+Inf
+#nIter is length of chain to run
+#adaptParms is list of parameters for adaptive MCMC;
+  #size is when to start adapting size of cov matrix
+  #sizeCool is cooling factor of size adaption (analogous to simulated annealing)
+  #sizeMax is max value to scale cov matrix by (helps control size of cov matrix)
+  #shape is when to start adapting shape of cov matrix
+  #accRate: if non NULL this calculates acceptance rate (for controlling adaptive scheme) as moving average;
+    #it should be bounded by 0 and 1
+  #accWindow: if accRate non NULL this parameter must be specified, and is the number of acceptances used to compute
+    #moving average accRate from
+#verbose is boolean to print chain information
+#printInfo tells how often to print information (is number and prints every time iter_i %% printInfo is 0)
+mcmc_adapt <- function(target,thetaStart,proposalSD,limits=list(lowLim=NULL,upLim=NULL),
+                       nIter,adaptParms=list(size=NULL,sizeCool=NULL,sizeMax=50,shape=NULL,accRate=NULL,accWindow=NULL),
+                       verbose=TRUE,printInfo=100) {
+  
+}
 
 
 mcmcMH <- function(target, init.theta, proposal.sd = NULL,
