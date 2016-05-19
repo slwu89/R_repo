@@ -27,6 +27,78 @@ mcmc_adapt <- function(target,thetaStart,proposalSD,limits=list(lowLim=NULL,upLi
                        nIter,adaptParms=list(size=NULL,sizeCool=NULL,sizeMax=50,shape=NULL,accRate=NULL,accWindow=NULL),
                        verbose=TRUE,printInfo=100) {
   
+  #initialize theta
+  theta_current <- thetaStart
+  theta_proposal <- thetaStart
+  theta_names <- names(thetaStart)
+  
+  #initialize proposal distribution
+  if(is.null(proposalSD)){
+    proposalSD <- thetaStart/10
+    proposalSD <- proposalSD[theta_names]
+  }
+  sigma <- diag(proposalSD^2)
+  dimnames(sigma) <- list(theta_names,theta_names)
+  sigma_init <- sigma
+  
+  if(!is.null(limits$lowLim)){
+    lowLim <- limits$lowLim
+    lowLim <- lowLim[theta_names]
+  }
+  
+  if(!is.null(limits$upLim)){
+    upLim <- limits$upLim
+    upLim <- upLim[theta_names]
+  }
+  
+  #initialize acceptance rate
+  acc_rate <- 0
+  if(!is.null(adaptParms$accWindow)){
+    acc_movAvg <- NULL
+  }
+  
+  #initialize output
+  trace_out <- matrix(NA,nrow=nIter,ncol=length(thetaStart),dimnames=list(NULL,theta_names))
+  sigma_out <- vector("list",length=nIter)
+  acc_out <- vector("logical",length=nIter)
+  
+  #main mcmc loop
+  for(i in 1:nIter){
+    
+    #adaptive sigma
+    if(!is.null(adaptParms$size) & i >= adaptParms$size & (is.null(adaptParms$shape) | acc_rate*i < adaptParms$shape)) {
+      if(i == adaptParms$size){
+        message("Begin adapting size of sigma")
+      }
+      
+    }
+    
+    
+    
+    if (!is.null(adapt.size.start) && i.iteration >= adapt.size.start &&
+        (is.null(adapt.shape.start) || acceptance.rate*i.iteration < adapt.shape.start)) {
+      if (!adapting.size) {
+        message("\n---> Start adapting size of covariance matrix")
+        adapting.size <- TRUE
+      }
+      # adapt size of covmat until we get enough accepted jumps
+      scaling.multiplier <- exp(adapt.size.cooling^(i.iteration-adapt.size.start) * (acceptance.rate - 0.234))
+      scaling.sd <- scaling.sd * scaling.multiplier
+      scaling.sd <- min(c(scaling.sd,max.scaling.sd))
+      # only scale if it doesn't reduce the covariance matrix to 0
+      covmat.proposal.new <- scaling.sd^2*covmat.proposal.init
+      if (!(any(diag(covmat.proposal.new)[theta.estimated.names] <
+                .Machine$double.eps))) {
+        covmat.proposal <- covmat.proposal.new
+      }
+      
+    
+    }
+    
+    
+    
+    
+    
 }
 
 

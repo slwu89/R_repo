@@ -1,5 +1,6 @@
 #include <Rcpp.h>
 using namespace Rcpp;
+using namespace 
 
 // This is a simple example of exporting a C++ function to R. You can
 // source this function into an R session using the Rcpp::sourceCpp 
@@ -26,4 +27,4 @@ NumericVector timesTwo(NumericVector x) {
 timesTwo(42)
 */
 
-// [[Rcpp::export]]
+
