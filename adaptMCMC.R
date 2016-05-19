@@ -52,7 +52,7 @@ mcmc_adapt <- function(target,thetaStart,proposalSD,limits=list(lowLim=NULL,upLi
   }
   
   #initialize acceptance rate
-  acc_rate <- 0
+  acc_rate <- NA
   if(!is.null(adaptParms$accWindow)){
     acc_movAvg <- NULL
   }
@@ -70,11 +70,14 @@ mcmc_adapt <- function(target,thetaStart,proposalSD,limits=list(lowLim=NULL,upLi
       if(i == adaptParms$size){
         message("Begin adapting size of sigma")
       }
-      
+      sigma_size <- exp(adaptParms$sizeCool^(i-adaptParms$size) * (acc_rate - 0.234))
+      sigma_size <- min(c(sigma_size,adaptParms$sizeMax))
+      #sigma_proposal <- sigma_size
     }
     
     
     
+    # adaptive step
     if (!is.null(adapt.size.start) && i.iteration >= adapt.size.start &&
         (is.null(adapt.shape.start) || acceptance.rate*i.iteration < adapt.shape.start)) {
       if (!adapting.size) {
@@ -92,8 +95,19 @@ mcmc_adapt <- function(target,thetaStart,proposalSD,limits=list(lowLim=NULL,upLi
         covmat.proposal <- covmat.proposal.new
       }
       
-    
+    } else if (!is.null(adapt.shape.start) &&
+               acceptance.rate*i.iteration >= adapt.shape.start) {
+      if (!adapting.shape) {
+        message("\n---> Start adapting shape of covariance matrix")
+        # flush.console()
+        adapting.shape <- TRUE
+      }
+      # adapt shape of covmat using optimal scaling factor for multivariate target distributions
+      scaling.sd <- 2.38/sqrt(length(theta.estimated.names))
+      
+      covmat.proposal <- scaling.sd^2 * covmat.empirical
     }
+    
     
     
     
@@ -375,3 +389,7 @@ mcmcMH <- function(target, init.theta, proposal.sd = NULL,
               acceptance.rate = acceptance.rate,
               covmat.empirical = covmat.empirical))
 }
+
+
+
+
