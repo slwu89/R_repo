@@ -3,7 +3,6 @@
 ######Sean Wu 5/24/2016######
 #############################
 
-library(animation)
 
 ####################
 ###Create lattice###
@@ -61,10 +60,11 @@ bml_step <- function(mat){
 ###Simulation functions###
 ##########################
 
+
 out <- list()
 jam <- FALSE
 i <- 1
-init_mat <- bml_init(100,100,0.25)
+init_mat <- bml_init(100,100,0.35)
 while(!jam){
   if(i == 1){
     mat <- bml_step(init_mat)  
@@ -78,4 +78,6 @@ while(!jam){
   i <- i +1
 }
 
-
+for(i in 1:length(out)){
+  write.table(x=out[[i]],file=paste0("time",i,".csv"),col.names=FALSE,sep=",")
+}
