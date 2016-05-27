@@ -10,10 +10,10 @@
 NotebookFileLineBreakTest
 NotebookFileLineBreakTest
 NotebookDataPosition[       158,          7]
-NotebookDataLength[      3319,        100]
-NotebookOptionsPosition[      2885,         81]
-NotebookOutlinePosition[      3232,         96]
-CellTagsIndexPosition[      3189,         93]
+NotebookDataLength[      2703,         92]
+NotebookOptionsPosition[      2350,         75]
+NotebookOutlinePosition[      2697,         90]
+CellTagsIndexPosition[      2654,         87]
 WindowFrame->Normal*)
 
 (* Beginning of Notebook Content *)
@@ -24,11 +24,25 @@ Cell[BoxData[{
  RowBox[{"SetDirectory", "[", 
   RowBox[{"NotebookDirectory", "[", "]"}], "]"}], "\n", 
  RowBox[{
+  RowBox[{"names", "=", 
+   RowBox[{"FileNames", "[", "\"\<*.csv\>\"", "]"}]}], ";"}], "\n", 
+ RowBox[{
+  RowBox[{"ordering", "=", 
+   RowBox[{"Ordering", "[", 
+    RowBox[{
+     RowBox[{
+      RowBox[{"ToExpression", "[", 
+       RowBox[{"StringDrop", "[", 
+        RowBox[{
+         RowBox[{"StringDrop", "[", 
+          RowBox[{"#", ",", "4"}], "]"}], ",", 
+         RowBox[{"-", "4"}]}], "]"}], "]"}], "&"}], "/@", "names"}], "]"}]}], 
+  ";"}], "\n", 
+ RowBox[{
   RowBox[{"data", "=", 
    RowBox[{"Import", "/@", 
-    RowBox[{"(", 
-     RowBox[{"FileNames", "[", "\"\<*.csv\>\"", "]"}], ")"}]}]}], 
-  ";"}], "\[IndentingNewLine]", 
+    RowBox[{"names", "[", 
+     RowBox[{"[", "ordering", "]"}], "]"}]}]}], ";"}], "\n", 
  RowBox[{
   RowBox[{"plot", "=", 
    RowBox[{
@@ -39,48 +53,28 @@ Cell[BoxData[{
         RowBox[{"{", 
          RowBox[{
           RowBox[{"0", "\[Rule]", "White"}], ",", 
-          RowBox[{"1", "->", "Red"}], ",", 
-          RowBox[{"2", "->", "Blue"}]}], "}"}]}]}], "]"}], "&"}], "/@", 
+          RowBox[{"1", "\[Rule]", "Red"}], ",", 
+          RowBox[{"2", "\[Rule]", "Blue"}]}], "}"}]}]}], "]"}], "&"}], "/@", 
     RowBox[{"(", 
      RowBox[{"data", "[", 
       RowBox[{"[", 
        RowBox[{"All", ",", "All", ",", 
-        RowBox[{"2", ";;", "All"}]}], "]"}], "]"}], ")"}]}]}], 
-  ";"}], "\[IndentingNewLine]", 
- RowBox[{
-  RowBox[{"plot", "//", 
-   RowBox[{
-    RowBox[{"ListAnimate", "[", "#", "]"}], "&"}]}], 
-  ";"}], "\[IndentingNewLine]", 
+        RowBox[{"2", ";;", "All"}]}], "]"}], "]"}], ")"}]}]}], ";"}], "\n", 
  RowBox[{"Export", "[", 
-  RowBox[{"\"\<traffic.gif\>\"", ",", "plot"}], "]"}]}], "Input",
- CellChangeTimes->{{3.673180242812668*^9, 3.6731802428282485`*^9}, {
-  3.6731802834752445`*^9, 3.673180294038431*^9}, {3.6731803381075473`*^9, 
-  3.6731803393108444`*^9}, {3.6731804216728354`*^9, 3.673180458291471*^9}, {
-  3.6731805524971647`*^9, 3.673180613973374*^9}, {3.6731807105813036`*^9, 
-  3.673180771417986*^9}, {3.6731808239509497`*^9, 3.6731808408487844`*^9}, {
-  3.6731809840508547`*^9, 3.6731809896697006`*^9}, {3.673181047500334*^9, 
-  3.673181137324279*^9}, {3.673181207411647*^9, 3.67318121757967*^9}, {
-  3.673181650933339*^9, 3.6731816701195574`*^9}}],
+  RowBox[{"\"\<BML_plot.gif\>\"", ",", "plot", ",", 
+   RowBox[{"ImageSize", "\[Rule]", "Small"}], ",", 
+   RowBox[{"ImageResolution", "\[Rule]", "20"}]}], "]"}]}], "Input",
+ CellChangeTimes->{{3.673353470011196*^9, 3.673353484449196*^9}}],
 
-Cell[BoxData["\<\"C:\\\\Users\\\\WuS\\\\Documents\"\>"], "Output",
- CellChangeTimes->{{3.673180311846799*^9, 3.6731803402484727`*^9}, 
-   3.6731804829066205`*^9, 3.673180587167883*^9, 3.673180625146579*^9, 
-   3.6731807226981*^9, 3.6731808007086625`*^9, 3.6731808680703344`*^9, 
-   3.6731811773430653`*^9, 3.673181221889068*^9, 3.673181654056919*^9}]
-}, Open  ]],
+Cell[BoxData["\<\"C:\\\\Users\\\\WuS\\\\Desktop\\\\bml_out\"\>"], "Output",
+ CellChangeTimes->{3.673353489784196*^9}],
 
-Cell[BoxData[""], "Input",
- CellChangeTimes->{{3.673181013210741*^9, 3.6731810324482603`*^9}}],
-
-Cell[BoxData[""], "Input",
- CellChangeTimes->{{3.6731816719701085`*^9, 3.6731816776873393`*^9}}],
-
-Cell[BoxData[""], "Input",
- CellChangeTimes->{{3.673181676235735*^9, 3.673181676235735*^9}}]
+Cell[BoxData["\<\"BML_plot.gif\"\>"], "Output",
+ CellChangeTimes->{3.673354126504344*^9}]
+}, Open  ]]
 },
-WindowSize->{1920, 998},
-WindowMargins->{{-8, Automatic}, {Automatic, -8}},
+WindowSize->{775, 565},
+WindowMargins->{{564, Automatic}, {Automatic, 54}},
 FrontEndVersion->"10.4 for Microsoft Windows (64-bit) (February 25, 2016)",
 StyleDefinitions->"Default.nb"
 ]
@@ -96,12 +90,10 @@ CellTagsIndex->{}
 (*NotebookFileOutline
 Notebook[{
 Cell[CellGroupData[{
-Cell[580, 22, 1645, 41, 112, "Input"],
-Cell[2228, 65, 350, 4, 31, "Output"]
-}, Open  ]],
-Cell[2593, 72, 94, 1, 31, "Input"],
-Cell[2690, 75, 96, 1, 31, "Input"],
-Cell[2789, 78, 92, 1, 31, InheritFromParent]
+Cell[580, 22, 1542, 44, 152, "Input"],
+Cell[2125, 68, 117, 1, 31, "Output"],
+Cell[2245, 71, 89, 1, 88, "Output"]
+}, Open  ]]
 }
 ]
 *)
