@@ -3,6 +3,96 @@
 ############################################################
 
 library(Rcpp)
+library(RcppArmadillo)
+
+#function to test on 
+p.log <- function(x) {
+  B <- 0.03 # controls 'bananacity'
+  -x[1]^2/200 - 1/2*(x[2]+B*x[1]^2-100*B)^2
+}
+
+samp <- MCMC(p.log, n=200, init=c(0, 1), scale=c(1, 0.1),
+             adapt=TRUE, acc.rate=0.234)
+
+###random walk Metropolis-Hastings MCMC
+
+#target is the target function
+#theta is the initial theta
+#sigma is the covariance matrix 
+#iterations is how long to run the chain
+mcmc_rw <- function(target,theta_init,sigma,iterations){
+  
+  #evaluate the target function
+  target_i <- target(theta_init)
+  
+}
+
+
+###random walk metropolis-hastings mcmc
+mcmcMH <- function(posterior, initTheta, proposalSD, numIterations) {
+  
+  # Evaluate the function "posterior" at "initTheta", and assign to a
+  # variable called posteriorThetaCurrent.
+  posteriorThetaCurrent <- posterior(initTheta)
+  
+  # Initialise variables to store the current value of theta, the
+  # vector of sample values, and the number of accepted proposals.
+  thetaCurrent <- initTheta
+  samples <- initTheta
+  accepted <- 0
+  
+  # Run the MCMC algorithm for numIterations interations.
+  for (i in 1:numIterations) {
+    
+    # Draw a new theta from a Gaussian proposal distribution and
+    # assign this to a variable called thetaProposed.
+    thetaProposed <- rnorm(n = length(thetaCurrent),
+                           mean = thetaCurrent, 
+                           sd = proposalSD)
+    
+    # Assign names to the thetaProposed vector.
+    names(thetaProposed) <- names(thetaCurrent)
+    
+    # Evaluate the (log) posterior function at the proposed theta
+    # value and assign to a variable called 
+    # posteriorThetaProposed.
+    posteriorThetaProposed <- posterior(thetaProposed)
+    
+    # Compute the Metropolis-Hastings (log) acceptance
+    # probability and assigne to a variabled called
+    # logAcceptance.
+    logAcceptance <- posteriorThetaProposed - posteriorThetaCurrent
+    
+    # Draw a random number uniformly-distributed between 0 and 1
+    # using "runif" and assign to a variable called randNum.
+    randNum <- runif(n = 1, min = 0, max = 1)
+    
+    # Use the random number and the acceptance probability to 
+    # determine if thetaProposed will be accepted.
+    if (randNum < exp(logAcceptance)) {
+      
+      # If accepted, change the current value of theta to the
+      # proposed value of theta.
+      thetaCurrent <- thetaProposed
+      
+      # And update the current value of the posterior 
+      # function.
+      posteriorThetaCurrent <- posteriorThetaProposed
+      
+      # And update number of accepted proposals.
+      accepted <- accepted + 1
+    }
+    
+    # Add the current theta to the vector of samples.
+    samples <- c(samples, thetaCurrent)
+    
+    # Print the current state of chain and acceptance rate.
+    cat("iteration:", i, "chain:", thetaCurrent,
+        "acceptance rate:", accepted / i, "\n")
+  }
+  return(samples)
+}
+
 
 
 
