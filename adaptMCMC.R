@@ -25,6 +25,12 @@ mcmc_rw <- function(target,theta_init,sigma,iterations){
   #evaluate the target function
   target_i <- target(theta_init)
   
+  #storage objects
+  theta_i <- theta_init #current value of theta
+  theta_samp <- theta_init #store trace of theta
+  accepted <- 0 #record acceptances
+  
+  
 }
 
 
