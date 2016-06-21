@@ -5,33 +5,24 @@
 library(Rcpp)
 library(RcppArmadillo)
 
+Rcpp::sourceCpp('C:/Users/WuS/Dropbox/GitHub/R_repo/adaptMCMC.cpp')
+
 #function to test on 
 p.log <- function(x) {
   B <- 0.03 # controls 'bananacity'
   -x[1]^2/200 - 1/2*(x[2]+B*x[1]^2-100*B)^2
 }
 
-samp <- MCMC(p.log, n=200, init=c(0, 1), scale=c(1, 0.1),
-             adapt=TRUE, acc.rate=0.234)
+#test
+banana_out <- rw_mcmc(target=p.log,theta_init=c(-5,5),sigma=diag(rep(1,2)),iterations=1e3)
 
-###random walk Metropolis-Hastings MCMC
+x1 <- seq(-15, 15, length=100)
+x2 <- seq(-15, 15, length=100)
+d.banana <- matrix(apply(expand.grid(x1, x2), 1, p.log), nrow=100)
+image(x1, x2, exp(d.banana), col=cm.colors(60))
+contour(x1, x2, exp(d.banana), add=TRUE, col=gray(0.6))
+lines(banana_out$trace, type='l', pch=3)
 
-#target is the target function
-#theta is the initial theta
-#sigma is the covariance matrix 
-#iterations is how long to run the chain
-mcmc_rw <- function(target,theta_init,sigma,iterations){
-  
-  #evaluate the target function
-  target_i <- target(theta_init)
-  
-  #storage objects
-  theta_i <- theta_init #current value of theta
-  theta_samp <- theta_init #store trace of theta
-  accepted <- 0 #record acceptances
-  
-  
-}
 
 
 ###random walk metropolis-hastings mcmc
@@ -101,117 +92,7 @@ mcmcMH <- function(posterior, initTheta, proposalSD, numIterations) {
 
 
 
-
-
-#target is the density to be approximated
-#thetaStart is the initial parameter values
-#proposalSD is initial SD of each parameter in the multivariate gaussian proposal distribution
-#limits is list of lowLim and upLim for truncated proposal distribution; if not given, both set to -/+Inf
-#nIter is length of chain to run
-#adaptParms is list of parameters for adaptive MCMC;
-  #size is when to start adapting size of cov matrix
-  #sizeCool is cooling factor of size adaption (analogous to simulated annealing)
-  #sizeMax is max value to scale cov matrix by (helps control size of cov matrix)
-  #shape is when to start adapting shape of cov matrix
-  #accRate: if non NULL this calculates acceptance rate (for controlling adaptive scheme) as moving average;
-    #it should be bounded by 0 and 1
-  #accWindow: if accRate non NULL this parameter must be specified, and is the number of acceptances used to compute
-    #moving average accRate from
-#verbose is boolean to print chain information
-#printInfo tells how often to print information (is number and prints every time iter_i %% printInfo is 0)
-mcmc_adapt <- function(target,thetaStart,proposalSD,limits=list(lowLim=NULL,upLim=NULL),
-                       nIter,adaptParms=list(size=NULL,sizeCool=NULL,sizeMax=50,shape=NULL,accRate=NULL,accWindow=NULL),
-                       verbose=TRUE,printInfo=100) {
-  
-  #initialize theta
-  theta_current <- thetaStart
-  theta_proposal <- thetaStart
-  theta_names <- names(thetaStart)
-  
-  #initialize proposal distribution
-  if(is.null(proposalSD)){
-    proposalSD <- thetaStart/10
-    proposalSD <- proposalSD[theta_names]
-  }
-  sigma <- diag(proposalSD^2)
-  dimnames(sigma) <- list(theta_names,theta_names)
-  sigma_init <- sigma
-  
-  if(!is.null(limits$lowLim)){
-    lowLim <- limits$lowLim
-    lowLim <- lowLim[theta_names]
-  }
-  
-  if(!is.null(limits$upLim)){
-    upLim <- limits$upLim
-    upLim <- upLim[theta_names]
-  }
-  
-  #initialize acceptance rate
-  acc_rate <- NA
-  if(!is.null(adaptParms$accWindow)){
-    acc_movAvg <- NULL
-  }
-  
-  #initialize output
-  trace_out <- matrix(NA,nrow=nIter,ncol=length(thetaStart),dimnames=list(NULL,theta_names))
-  sigma_out <- vector("list",length=nIter)
-  acc_out <- vector("logical",length=nIter)
-  
-  #main mcmc loop
-  for(i in 1:nIter){
-    
-    #adaptive sigma
-    if(!is.null(adaptParms$size) & i >= adaptParms$size & (is.null(adaptParms$shape) | acc_rate*i < adaptParms$shape)) {
-      if(i == adaptParms$size){
-        message("Begin adapting size of sigma")
-      }
-      sigma_size <- exp(adaptParms$sizeCool^(i-adaptParms$size) * (acc_rate - 0.234))
-      sigma_size <- min(c(sigma_size,adaptParms$sizeMax))
-      #sigma_proposal <- sigma_size
-    }
-    
-    
-    
-    # adaptive step
-    if (!is.null(adapt.size.start) && i.iteration >= adapt.size.start &&
-        (is.null(adapt.shape.start) || acceptance.rate*i.iteration < adapt.shape.start)) {
-      if (!adapting.size) {
-        message("\n---> Start adapting size of covariance matrix")
-        adapting.size <- TRUE
-      }
-      # adapt size of covmat until we get enough accepted jumps
-      scaling.multiplier <- exp(adapt.size.cooling^(i.iteration-adapt.size.start) * (acceptance.rate - 0.234))
-      scaling.sd <- scaling.sd * scaling.multiplier
-      scaling.sd <- min(c(scaling.sd,max.scaling.sd))
-      # only scale if it doesn't reduce the covariance matrix to 0
-      covmat.proposal.new <- scaling.sd^2*covmat.proposal.init
-      if (!(any(diag(covmat.proposal.new)[theta.estimated.names] <
-                .Machine$double.eps))) {
-        covmat.proposal <- covmat.proposal.new
-      }
-      
-    } else if (!is.null(adapt.shape.start) &&
-               acceptance.rate*i.iteration >= adapt.shape.start) {
-      if (!adapting.shape) {
-        message("\n---> Start adapting shape of covariance matrix")
-        # flush.console()
-        adapting.shape <- TRUE
-      }
-      # adapt shape of covmat using optimal scaling factor for multivariate target distributions
-      scaling.sd <- 2.38/sqrt(length(theta.estimated.names))
-      
-      covmat.proposal <- scaling.sd^2 * covmat.empirical
-    }
-    
-    
-    
-    
-    
-    
-}
-
-
+#metropolis-hastings MCMC with adaptive transition kernel
 mcmcMH <- function(target, init.theta, proposal.sd = NULL,
                    n.iterations, covmat = NULL,
                    limits=list(lower = NULL, upper = NULL),
