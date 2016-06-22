@@ -138,13 +138,15 @@ List adapt_mcmc(Function target, arma::vec theta_init, arma::mat sigma, double c
       sigma_proposal = pow(scale_sd,2)*sigma_empirical;
     }
     
+    //Rcout << "sigma_proposal: " << sigma_proposal << std::endl; //DEBUGGING
+    
     //print diagnostics
     if((i+1) % info == 0){
       Rcout << "Iteration: " << i << ", acceptance rate: " << acc_rate << std::endl;
     }
     
     //sample from the proposal distribution (transition kernel)
-    arma::vec theta_star;
+    arma::rowvec theta_star;
     theta_star = mvrnorm_cpp(theta_i,sigma_proposal);
     
     //evaluate target at proposed theta
@@ -160,11 +162,14 @@ List adapt_mcmc(Function target, arma::vec theta_init, arma::mat sigma, double c
     arma::vec armaRand = arma::randu(1);
     double r_num;
     r_num = as<double>(wrap(armaRand(0)));
+    //Rcout << "r_num: " << r_num << std::endl; //DEBUGGING
+    //Rcout << "exp(A): " << exp(A) << std::endl; //DEBUGGING
     //calculate MH acceptance probability
     if(r_num < exp(A)){
-      theta_i = theta_star; //update current value of theta
+      theta_i = theta_star.t(); //update current value of theta
       target_i = target_star; //update current value of target
       acc = true; //record acceptance
+      //Rcout << "accepted at iteration: " << i << std::endl; //DEBUGGING
     }
     
     //update acceptance rate
