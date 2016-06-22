@@ -13,7 +13,7 @@ p.log <- function(x) {
   -x[1]^2/200 - 1/2*(x[2]+B*x[1]^2-100*B)^2
 }
 
-#test
+#test random walk mcmc
 banana_out <- rw_mcmc(target=p.log,theta_init=c(-5,5),sigma=diag(rep(1,2)),iterations=1e3)
 
 x1 <- seq(-15, 15, length=100)
@@ -23,7 +23,7 @@ image(x1, x2, exp(d.banana), col=cm.colors(60))
 contour(x1, x2, exp(d.banana), add=TRUE, col=gray(0.6))
 lines(banana_out$trace, type='l', pch=3)
 
-
+#test adaptive mcmc
 
 ###random walk metropolis-hastings mcmc
 mcmcMH <- function(posterior, initTheta, proposalSD, numIterations) {

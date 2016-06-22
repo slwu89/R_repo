@@ -10,64 +10,22 @@ arma::rowvec mvrnorm_cpp(arma::vec mu, arma::mat sigma) {
   return(arma::trans(mu + Y) * arma::chol(sigma));
 }
 
-// Random Walk Metropolis-Hastings MCMC testing version with lots of printing to console
 // [[Rcpp::export]]
-void rw_mcmcTest(Function target,arma::vec theta_init, arma::mat sigma, int iterations){
-
-  arma::vec theta_i = theta_init; //current value of theta
-  NumericMatrix theta_samp = NumericMatrix(iterations,theta_init.n_elem); //store the trace of theta
-  int accepted = 0; //record acceptance
-  double target_i; //evaluate target at current theta
-  target_i = as<double>(target(theta_i));
-  
-  Rcout << "initialized the following shit: " << " theta_i: " << theta_i << " theta_samp: " << theta_samp << " accepted: " << accepted << " target_i: " << target_i << " sigma: " << sigma << std::endl;
-
-  for(int i = 0; i < iterations; i++){
-
-    //sample from the proposal distribution (transition kernel)
-    // arma::vec theta_star;
-    // Rcout << "init theta_star" << theta_star;
-    arma::rowvec theta_star = mvrnorm_cpp(theta_i,sigma);
-    Rcout << "at iter: " << i << " theta_star: " << theta_star << std::endl;
-
-    //evaluate target at proposed theta
-    double target_star;
-    target_star = as<double>(target(theta_star));
-    Rcout << "at iter: " << i << " target_star: " << target_star << std::endl;
-
-    //compute A (log of the Bayes factor)
-    double A;
-    A = target_star - target_i;
-    
-    //evaluate MH acceptance kernel
-
-    // LATER NEED TO SET UP BETTER RNG
-    arma::vec armaRand = arma::randu(1);
-    double r_num;
-    r_num = as<double>(wrap(armaRand(0)));
-    Rcout << "at iter: " << i << " r_num: " << r_num << std::endl;
-    // LATER NEED TO SET UP BETTER RNG
-
-    if(r_num < exp(A)){
-      Rcout << " at iter: " << i << " we accepted!" << std::endl;
-      theta_i = theta_star.t(); //update current value of theta
-      target_i = target_star; //update current value of target
-      accepted = accepted + 1; //record acceptance
-    }
-    
-    theta_samp(i,_) = as<NumericVector>(wrap(theta_i)); //record the current value of theta
-    Rcout << "Current iteration: " << i << " theta_samp looks like: " << theta_samp << std::endl;
-  }
+arma::mat update_sigma(arma::mat cov_mat, arma::vec residual, int i){
+  arma::mat a = cov_mat * (i-1) + (i+1);
+  arma::mat b = (i*residual) * residual.t();
+  arma::mat out = a/b/i;
+  return(out);
 }
 
 // Random Walk Metropolis-Hastings MCMC
-// [[Rcpp::export]]
 /*
  * target is a function that returns the log probability density to sample from; it must take a vector as input
  * theta_init is a vector of initial parameter values
  * sigma is the covariance matrix of the Gaussian transition kernel (proposal density)
  * iterations is the number of iterations
  */
+// [[Rcpp::export]]
 List rw_mcmc(Function target, arma::vec theta_init, arma::mat sigma, int iterations){
   
   arma::vec theta_i = theta_init; //current value of theta
@@ -93,8 +51,6 @@ List rw_mcmc(Function target, arma::vec theta_init, arma::mat sigma, int iterati
     
     //evaluate MH acceptance kernel
     bool acc = false; //boolean to record acceptance at each i
-    
-    //draw from Gaussian transition kernel
     // LATER NEED TO SET UP AN RNGscope FOR BETTER RANDOM NUMBER GENERATION
     arma::vec armaRand = arma::randu(1);
     double r_num;
@@ -123,7 +79,6 @@ List rw_mcmc(Function target, arma::vec theta_init, arma::mat sigma, int iterati
 
 
 // Random Walk Metropolis-Hastings MCMC with Adaptive Transition Kernel
-// [[Rcpp::export]]
 /*
  * target is a function that returns the log probability density to sample from; it must take a vector as input
  * theta_init is a vector of initial parameter values
@@ -132,8 +87,10 @@ List rw_mcmc(Function target, arma::vec theta_init, arma::mat sigma, int iterati
  * adapt_size is the iteration to begin adapting size of sigma
  * adapt_shape is the iteration to begin adapting shape of sigma
  * iterations is the number of iterations
+ * info is the frequency of diagnostic information on the chain
  */
-List adapt_mcmc(Function target, arma::vec theta_init, arma::mat sigma, double cooling, int adapt_size, int adapt_shape, int iterations){
+// [[Rcpp::export]]
+List adapt_mcmc(Function target, arma::vec theta_init, arma::mat sigma, double cooling, int adapt_size, int adapt_shape, int iterations, int info){
 
   //prepare trace
   arma::vec theta_i = theta_init; //current value of theta
@@ -143,8 +100,8 @@ List adapt_mcmc(Function target, arma::vec theta_init, arma::mat sigma, double c
   target_i = as<double>(target(theta_i));
 
   //prepare sigma and adaptive routine
-  int s_dim;
-  s_dim = sigma.n_rows;
+  int num_param = theta_init.n_elem;
+  int s_dim = sigma.n_rows;
   arma::mat sigma_proposal = sigma; //proposal sigma
   arma::mat sigma_empirical = arma::zeros(s_dim,s_dim); //empirical sigma
   arma::mat sigma_init = sigma_proposal; //initial sigma
@@ -154,26 +111,61 @@ List adapt_mcmc(Function target, arma::vec theta_init, arma::mat sigma, double c
   bool adapting_shape = false; //boolean to control shape adaptation
   double scale_sd = 1; //scaling factor for size adaptation
   double max_scale_sd = 50; //maximum allowed value for size scaling factor MAYBE TURN INTO PARAMETER LATER
+  double scale_multiplier = 1; //scaling multiplier for size adaptation
 
   //run mcmc loop
   for(int i=0; i < iterations; i++){
     
     //adapt transition kernel size
-    if(adapt_size <= i && (adapt_shape == 0 || acc_rate*i < adapt_shape)){ //adapt size of sigma until enough transitions are accepted
+    if(adapt_size != 0 && adapt_size <= i && (adapt_shape == 0 || acc_rate*i < adapt_shape)){ //adapt size of sigma until enough transitions are accepted
       if(!adapting_size){ //on first iteration of size adaptation print to R console and change the control boolean
         Rcout << "Begin adapting size of sigma at iteration: " << i << std::endl;
         adapting_size = true;
       }
-      double scale_multiplier = exp(pow(cooling,i-adapt_size) * (acc_rate - 0.234));
-      double scale_sd = scale_sd * scale_multiplier;
-      scale_sd = std::min(scale_sd,max_scale_sd;)
+      scale_multiplier = exp(pow(cooling,i-adapt_size) * (acc_rate - 0.234));
+      scale_sd = scale_sd * scale_multiplier;
+      scale_sd = std::min(scale_sd,max_scale_sd);
       arma::mat sigma_new = pow(scale_sd,2)*sigma_init;
       if(!any(sigma_new.diag() < 2E-16)){
         sigma_proposal = sigma_new;
       }
-    } //LINE 167 on https://github.com/sbfnk/fitR/blob/master/R/mcmc.r
+    } else if(adapt_shape != 0 && acc_rate*i >= adapt_shape){ //adapt shape of sigma after enough accepted transitions
+      if(!adapting_shape){ //on first iteration of shape adaptation print to R console and change the control boolean
+        Rcout << "Begin adapting shape of sigma at iteration: " << i << std::endl;
+        adapting_shape = true;
+      }
+      scale_sd = 2.38/sqrt(num_param);
+      sigma_proposal = pow(scale_sd,2)*sigma_empirical;
+    }
     
+    //print diagnostics
+    if((i+1) % info == 0){
+      Rcout << "Iteration: " << i << ", acceptance rate: " << acc_rate << std::endl;
+    }
     
+    //sample from the proposal distribution (transition kernel)
+    arma::vec theta_star;
+    theta_star = mvrnorm_cpp(theta_i,sigma_proposal);
+    
+    //evaluate target at proposed theta
+    double target_star;
+    target_star = as<double>(target(theta_star));
+    
+    //evaluate MH acceptance kernel
+    //SKIPPING LINES 228-232...IF NEEDED LATER ADD A CHECK FOR POSTERIOR PDF VALUE
+    //compute A (log of the Bayes factor)
+    double A = target_star - target_i;
+    bool acc = false; //boolean to record acceptance at each i
+    // LATER NEED TO SET UP AN RNGscope FOR BETTER RANDOM NUMBER GENERATION
+    arma::vec armaRand = arma::randu(1);
+    double r_num;
+    r_num = as<double>(wrap(armaRand(0)));
+    //calculate MH acceptance probability
+    if(r_num < exp(A)){
+      theta_i = theta_star; //update current value of theta
+      target_i = target_star; //update current value of target
+      acc = true; //record acceptance
+    }
     
     //update acceptance rate
     if(i == 0){
@@ -182,11 +174,22 @@ List adapt_mcmc(Function target, arma::vec theta_init, arma::mat sigma, double c
       acc_rate = acc_rate + (acc - acc_rate) / i;
     }
     
+    //update empirical covariance matrix (sigma)
+    if(i == 0){ //not a great solution ASK HECTOR??
+      theta_mean = theta_mean;
+      sigma_empirical = sigma_empirical;
+    } else {
+      arma::vec residual = theta_i - theta_mean;
+      theta_mean = theta_mean + (residual/i); //update empirical mean theta
+      sigma_empirical = update_sigma(sigma_empirical,residual,i); //update empirical covariance matrix
+    }
+    
+    sigma_trace.slice(i) = sigma_proposal; //record current sigma
     theta_samp(i,_) = as<NumericVector>(wrap(theta_i)); //record the current value of theta
-    Rcout << "Current iteration: " << i << ", theta: " << theta_i(0) << ", " << theta_i(1) << std::endl;
+    Rcout << "Current iteration: " << i << ", theta: " << theta_i.t() << std::endl;
   }
 
-  return(List::create(Named("trace")=theta_samp,Named("acc_rate")=acc_rate));
+  return(List::create(Named("theta_trace")=theta_samp,Named("sigma_trace")=sigma_trace,Named("acc_rate")=acc_rate));
 }
 
 
