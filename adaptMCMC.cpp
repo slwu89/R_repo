@@ -2,7 +2,7 @@
 // [[Rcpp::depends(RcppArmadillo)]]
 using namespace Rcpp;
 
-
+// Sampling from multivariate Gaussian
 // [[Rcpp::export]]
 arma::rowvec mvrnorm_cpp(arma::vec mu, arma::mat sigma) {
   int ncols = sigma.n_cols;
@@ -10,11 +10,38 @@ arma::rowvec mvrnorm_cpp(arma::vec mu, arma::mat sigma) {
   return(arma::trans(mu + Y) * arma::chol(sigma));
 }
 
+// Density of multivariate Gaussian
+const double log2pi = std::log(2.0 * M_PI);
+
+// [[Rcpp::export]]
+arma::vec Mahalanobis(arma::mat x, arma::rowvec center, arma::mat cov) {
+  int n = x.n_rows;
+  arma::mat x_cen;
+  x_cen.copy_size(x);
+  for (int i=0; i < n; i++) {
+    x_cen.row(i) = x.row(i) - center;
+  }
+  return sum((x_cen * cov.i()) % x_cen, 1);    
+}
+
+// [[Rcpp::export]]
+arma::vec dmvnorm_arma(arma::mat x, arma::rowvec mean, arma::mat sigma, bool log = false) { 
+  arma::vec distval = Mahalanobis(x,  mean, sigma);
+  double logdet = sum(arma::log(arma::eig_sym(sigma)));
+  arma::vec logretval = -( (x.n_cols * log2pi + logdet + distval)/2  ) ;
+  
+  if (log) { 
+    return(logretval);
+  } else { 
+    return(exp(logretval));
+  }
+}
+
+
+// Function to update empirical covariance matrix
 // [[Rcpp::export]]
 arma::mat update_sigma(arma::mat cov_mat, arma::vec residual, int i){
-  arma::mat a = cov_mat * (i-1) + (i+1);
-  arma::mat b = (i*residual) * residual.t();
-  arma::mat out = a/b/i;
+  arma::mat out = (cov_mat * (i-1) + (i+1)/i*residual * residual.t())/i;
   return(out);
 }
 
@@ -26,7 +53,7 @@ arma::mat update_sigma(arma::mat cov_mat, arma::vec residual, int i){
  * iterations is the number of iterations
  */
 // [[Rcpp::export]]
-List rw_mcmc(Function target, arma::vec theta_init, arma::mat sigma, int iterations){
+List rw_mcmc(Function target, arma::vec theta_init, arma::mat sigma, int iterations, int info){
   
   arma::vec theta_i = theta_init; //current value of theta
   NumericMatrix theta_samp = NumericMatrix(iterations,theta_init.n_elem); //store the trace of theta
@@ -37,6 +64,11 @@ List rw_mcmc(Function target, arma::vec theta_init, arma::mat sigma, int iterati
   
   for(int i = 0; i < iterations; i++){
     
+    //print diagnostics
+    if((i+1) % info == 0){
+      Rcout << "Iteration: " << i+1 << ", acceptance rate: " << acc_rate << std::endl;
+    }
+    
     //sample from the proposal distribution (transition kernel)
     arma::rowvec theta_star;
     theta_star = mvrnorm_cpp(theta_i,sigma);
@@ -45,22 +77,26 @@ List rw_mcmc(Function target, arma::vec theta_init, arma::mat sigma, int iterati
     double target_star;
     target_star = as<double>(target(theta_star));
     
-    //compute A (log of the Bayes factor)
-    double A;
-    A = target_star - target_i;
-    
     //evaluate MH acceptance kernel
-    bool acc = false; //boolean to record acceptance at each i
-    // LATER NEED TO SET UP AN RNGscope FOR BETTER RANDOM NUMBER GENERATION
+    double A;
+    bool acc;
+    if(!std::isfinite(target_star)){
+      A = -std::numeric_limits<double>::infinity();
+      acc = false; //boolean to record acceptance at each i
+    } else {
+      //compute A (log of the Bayes factor)
+      A = target_star - target_i;
+      acc = false; //boolean to record acceptance at each i
+    }
+    
+    //calculate MH acceptance probability
     arma::vec armaRand = arma::randu(1);
     double r_num;
     r_num = as<double>(wrap(armaRand(0)));
-    
-    //calculate MH acceptance probability
     if(r_num < exp(A)){
       theta_i = theta_star.t(); //update current value of theta
       target_i = target_star; //update current value of target
-      acc = true;
+      acc = true; //record acceptance
     }
     
     //update acceptance rate
@@ -71,7 +107,6 @@ List rw_mcmc(Function target, arma::vec theta_init, arma::mat sigma, int iterati
     }
     
     theta_samp(i,_) = as<NumericVector>(wrap(theta_i)); //record the current value of theta
-    Rcout << "Current iteration: " << i << ", theta: " << theta_i(0) << ", " << theta_i(1) << std::endl;
   }
   
   return(List::create(Named("trace")=theta_samp,Named("acc_rate")=acc_rate));
@@ -122,7 +157,7 @@ List adapt_mcmc(Function target, arma::vec theta_init, arma::mat sigma, double c
         Rcout << "Begin adapting size of sigma at iteration: " << i << std::endl;
         adapting_size = true;
       }
-      scale_multiplier = exp(pow(cooling,i-adapt_size) * (acc_rate - 0.234));
+      scale_multiplier = exp(pow(cooling,(i-adapt_size)) * (acc_rate - 0.234));
       scale_sd = scale_sd * scale_multiplier;
       scale_sd = std::min(scale_sd,max_scale_sd);
       arma::mat sigma_new = pow(scale_sd,2)*sigma_init;
@@ -138,11 +173,9 @@ List adapt_mcmc(Function target, arma::vec theta_init, arma::mat sigma, double c
       sigma_proposal = pow(scale_sd,2)*sigma_empirical;
     }
     
-    //Rcout << "sigma_proposal: " << sigma_proposal << std::endl; //DEBUGGING
-    
     //print diagnostics
     if((i+1) % info == 0){
-      Rcout << "Iteration: " << i << ", acceptance rate: " << acc_rate << std::endl;
+      Rcout << "Iteration: " << i+1 << ", acceptance rate: " << acc_rate << std::endl;
     }
     
     //sample from the proposal distribution (transition kernel)
@@ -154,22 +187,25 @@ List adapt_mcmc(Function target, arma::vec theta_init, arma::mat sigma, double c
     target_star = as<double>(target(theta_star));
     
     //evaluate MH acceptance kernel
-    //SKIPPING LINES 228-232...IF NEEDED LATER ADD A CHECK FOR POSTERIOR PDF VALUE
-    //compute A (log of the Bayes factor)
-    double A = target_star - target_i;
-    bool acc = false; //boolean to record acceptance at each i
-    // LATER NEED TO SET UP AN RNGscope FOR BETTER RANDOM NUMBER GENERATION
+    double A;
+    bool acc;
+    if(!std::isfinite(target_star)){
+      A = -std::numeric_limits<double>::infinity();
+      acc = false; //boolean to record acceptance at each i
+    } else {
+      //compute A (log of the Bayes factor)
+      A = target_star - target_i;
+      acc = false; //boolean to record acceptance at each i
+    }
+    
+    //calculate MH acceptance probability
     arma::vec armaRand = arma::randu(1);
     double r_num;
     r_num = as<double>(wrap(armaRand(0)));
-    //Rcout << "r_num: " << r_num << std::endl; //DEBUGGING
-    //Rcout << "exp(A): " << exp(A) << std::endl; //DEBUGGING
-    //calculate MH acceptance probability
     if(r_num < exp(A)){
       theta_i = theta_star.t(); //update current value of theta
       target_i = target_star; //update current value of target
       acc = true; //record acceptance
-      //Rcout << "accepted at iteration: " << i << std::endl; //DEBUGGING
     }
     
     //update acceptance rate
@@ -191,7 +227,6 @@ List adapt_mcmc(Function target, arma::vec theta_init, arma::mat sigma, double c
     
     sigma_trace.slice(i) = sigma_proposal; //record current sigma
     theta_samp(i,_) = as<NumericVector>(wrap(theta_i)); //record the current value of theta
-    Rcout << "Current iteration: " << i << ", theta: " << theta_i.t() << std::endl;
   }
 
   return(List::create(Named("theta_trace")=theta_samp,Named("sigma_trace")=sigma_trace,Named("acc_rate")=acc_rate));
