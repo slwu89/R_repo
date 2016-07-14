@@ -1,5 +1,6 @@
 #include <RcppArmadillo.h>
 // [[Rcpp::depends(RcppArmadillo)]]
+#include <RcppArmadilloExtensions/sample.h>
 using namespace Rcpp;
 
 //Various examples, practice, and functions in C++ and Armadillo from coding the RW and Adaptive Metropolis-Hastings
@@ -339,48 +340,89 @@ armaSumTest(c(1,2,3))
 */
 
 
-//trying to call an R function from a package within C++
+// //trying to call an R function from a package within C++
+// // [[Rcpp::export]]
+// NumericVector packageFuncTest(int n, NumericVector mu, NumericMatrix Sigma){
+//   NumericVector out(n);
+//   Environment MASS("package:MASS"); 
+//   Function mvrnorm = MASS["mvrnorm"];
+//   out = mvrnorm(n,mu,Sigma);
+//   return(out);
+// }
+// /*** R
+// message("Running packageFuncTest!")
+// packageFuncTest(5,c(1,2,3,4,5),diag(c(1,1,1,1,1)))
+// */
+// 
+// 
+// //trying to call an R function with confusing output from a package within C++
+// // [[Rcpp::export]]
+// double packageFuncWeirdShit(NumericVector low, NumericVector high, NumericVector mean, NumericMatrix sigma){
+//   SEXP out;
+//   Environment mvtnorm("package:mvtnorm");
+//   Function pmvnorm = mvtnorm["pmvnorm"];
+//   out = pmvnorm(low,high,mean,R_NilValue,sigma);
+//   double real_out = as<double>(out);
+//   return(real_out);
+// }
+// /*** R
+// message("Running packageFuncWeirdShit!")
+// require(mvtnorm)
+// packageFuncWeirdShit(-Inf,c(2,2),c(1,1),diag(2)*2)
+//   */
+
+
+//infinity in C++
 // [[Rcpp::export]]
-NumericVector packageFuncTest(int n, NumericVector mu, NumericMatrix Sigma){
-  NumericVector out(n);
-  Environment MASS("package:MASS"); 
-  Function mvrnorm = MASS["mvrnorm"];
-  out = mvrnorm(n,mu,Sigma);
+double inf_test(){
+  double out = log(0.0);
+  return(out);
+}
+/***R
+message("Running inf_test")
+inf_test()
+*/
+
+
+//roll a 6-sided dice in C++
+// [[Rcpp::export]]
+double d6_roll(){
+  double out = 1 + (rand() % 6);
   return(out);
 }
 /*** R
-message("Running packageFuncTest!")
-packageFuncTest(5,c(1,2,3,4,5),diag(c(1,1,1,1,1)))
+message("Running d6_roll")
+replicate(10,d6_roll())
 */
 
 
-//trying to call an R function with confusing output from a package within C++
+//roll a 6-sided dice in C++ using Rcpp sugar
 // [[Rcpp::export]]
-double packageFuncTestWeird(NumericVector low, NumericVector high, NumericVector mean, Nullable<NumericMatrix> corr, NumericMatrix sigma){
-  SEXP out;
-  Environment mvtnorm("package:mvtnorm");
-  Function pmvnorm = mvtnorm["pmvnorm"];
-  out = pmvnorm(low,high,mean,corr,sigma);
-  double real_out = as<double>(out);
-  return(real_out);
+double d6_rollSugar(){
+  double roll = R::runif(0,1);
+  double out = 1 + floor(roll * 6);
+  return(out);
 }
-/*** R
-message("Running packageFuncTestWeird!")
-packageFuncTestWeird(-Inf,c(2,2),c(1,1),NULL,diag(2)*2)
+/***R
+message("Running d6_rollSugar")
+replicate(10,d6_rollSugar())
 */
 
 
-//trying to call an R function with confusing output from a package within C++
+//testing RcppArmadillo sample function
 // [[Rcpp::export]]
-double packageFuncWeirdShit(NumericVector low, NumericVector high, NumericVector mean, NumericMatrix sigma){
-  SEXP out;
-  Environment mvtnorm("package:mvtnorm");
-  Function pmvnorm = mvtnorm["pmvnorm"];
-  out = pmvnorm(low,high,mean,R_NilValue,sigma);
-  double real_out = as<double>(out);
-  return(real_out);
+double cpp_sample(NumericVector x, NumericVector probs){
+  double out;
+  NumericVector samp = RcppArmadillo::sample(x,1,false,probs);
+  out = samp(0);
+  return(out);
 }
-/*** R
-message("Running packageFuncWeirdShit!")
-packageFuncWeirdShit(-Inf,c(2,2),c(1,1),diag(2)*2)
-  */
+/***R
+message("Running cpp_sample")
+vector <- 1:5
+rand <- runif(5)
+rand <- rand/sum(rand)
+cpp_sample(vector,rand)
+*/
+
+

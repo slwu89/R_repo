@@ -2,6 +2,7 @@
 // [[Rcpp::depends(RcppArmadillo)]]
 using namespace Rcpp;
 
+
 // Sampling from multivariate Gaussian
 // [[Rcpp::export]]
 arma::rowvec mvrnorm_cpp(arma::vec mu, arma::mat sigma) {
@@ -10,12 +11,14 @@ arma::rowvec mvrnorm_cpp(arma::vec mu, arma::mat sigma) {
   return(arma::trans(mu + Y) * arma::chol(sigma));
 }
 
+
 // Function to update empirical covariance matrix
 // [[Rcpp::export]]
 arma::mat update_sigma(arma::mat cov_mat, arma::vec residual, int i){
   arma::mat out = (cov_mat * (i-1) + (i+1)/i*residual * residual.t())/i;
   return(out);
 }
+
 
 // Random Walk Metropolis-Hastings MCMC
 /*
