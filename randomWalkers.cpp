@@ -105,7 +105,6 @@ NumericVector random_walkGraph(NumericMatrix graph, int init_pos, int n){
     if(i % 10 == 0){ //print diagnostics
       Rcout << "Currently at step: " << i << std::endl;
     }
-    // Rcout << "Currently at step: " << i << std::endl;
   }
   return(out);
 }

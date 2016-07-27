@@ -426,3 +426,339 @@ cpp_sample(vector,rand)
 */
 
 
+//testing sorting NumericVector in reverse order and returning n highest values in C++
+// [[Rcpp::export]]
+NumericVector rev_sort(NumericVector vector, int n_samp){
+  NumericVector sort_vec;
+  sort_vec = vector.sort();
+  std::reverse(sort_vec.begin(),sort_vec.end());
+  NumericVector subset_vec;
+  NumericVector index;
+  for(int i=0; i<n_samp; i++){
+    index.push_back(i);
+  }
+  subset_vec = sort_vec[index];
+  return(subset_vec);
+}
+/***R
+message("Running rev_sort")
+values <- runif(n=1e2,min=2e-16,max=1e3)
+rev_sort(values,50)
+rev_sort(values,10)
+rev_sort(values,5)
+*/
+
+
+//testing negative subsetting in C++
+// [[Rcpp::export]]
+NumericVector neg_subset(NumericVector vector){
+  NumericVector out;
+  out = vector[vector != 0];
+  return(out);
+}
+/***R
+message("Running neg_subset")
+neg_subset(c(0,1,2,3,4,0,5,6,0,7,8,9))
+*/
+
+
+//testing match sugar function
+// [[Rcpp::export]]
+IntegerVector match_sugar(NumericVector vecA, NumericVector vecB){
+  IntegerVector  index;
+  index = match(vecA,vecB);
+  return(index);
+}
+/***R
+message("Running match_sugar")
+vecA <- c(1,2,3,4,5,6,7,8,9,10)
+vecB <- c(1,2,3,0,4,0,5,8,9,10)
+match_sugar(vecA,vecB)
+*/
+
+
+//testing filling NumericMatrix by rows
+// [[Rcpp::export]]
+NumericVector fill_matrix(){
+  NumericMatrix mat(Dimension(25,25));
+  for(int i=0; i<25; i++){
+    mat(i,_) = runif(25);
+  }
+  // return(mat);
+  return(mat);
+}
+/***R
+message("Running fill_matrix")
+fill_matrix()
+*/
+
+
+//testing conversion of arma matrix to numericmatrix
+// [[Rcpp::export]]
+NumericMatrix armaMat_convert(arma::mat data){
+  NumericMatrix out;
+  out = wrap(data);
+  return(out);
+}
+/***R
+message("Running armaMat_convert")
+armaMat_convert(diag(rep(1,10)))
+*/
+
+
+//testing creation of diagonal matricies
+// [[Rcpp::export]]
+arma::mat diagArma(arma::mat data){
+  return(data.eye());
+}
+/***R
+message("Running diagArma")
+diagArma(matrix(rnorm(25),5,5))
+*/
+
+
+//testing eigendecomposition in Armadillo
+// [[Rcpp::export]]
+List eigenDecomp(){
+  arma::mat A = arma::randu(10,10);
+  arma::mat B = A.t()*A;  // generate a symmetric matrix
+  arma::vec eigval;
+  arma::mat eigvec;
+  arma::eig_sym(eigval,eigvec,B);
+  return(List::create(Named("eigenVec")=eigvec,Named("eigenVal")=eigval));
+}
+/***R
+message("Running eigenDecomp")
+eigenDecomp()
+*/
+
+
+//testing default arguments in C++
+// [[Rcpp::export]]
+void defaultArg(int times = 10){
+  for(int i=0; i<times; i++){
+    Rcout << "current at iter: " << i << std::endl;
+  }
+}
+/***R
+message("Running defaultArg")
+defaultArg()
+defaultArg(times=15)
+*/
+
+
+//test scale of the diagonal of a matrix
+// [[Rcpp::export]]
+void diagArmaCheck(arma::mat data){
+  if(any(data.diag() < 2E-6)){
+    Rcout << "data diagonal values below 2e-6" << std::endl;
+  } else {
+    Rcout << "data has no diagonal values below 2e-6" << std::endl;
+  }
+}
+/***R
+message("Running diagArmaCheck")
+diagArmaCheck(diag(rep(2e-16,3)))
+diagArmaCheck(diag(rep(5,3)))
+*/
+
+
+//trying to check for finite doubles in C++
+// [[Rcpp::export]]
+void checkFinite(double num){
+  if(!std::isfinite(num)){
+    Rcout << "double: " << num << "is not finite" << std::endl;
+  } else {
+    Rcout << "double: " << num << "is finite" << std::endl;
+  }
+}
+/***R
+message("Running checkFinite")
+checkFinite(Inf)
+checkFinite(500)
+*/
+
+
+//checking calling function from R to output double
+// [[Rcpp::export]]
+double runTarget(Function target, NumericVector input){
+  double out = as<double>(wrap(target(input)));
+  return(out);
+}
+/***R
+message("Running runTarget")
+p.log <- function(x) {
+  B <- 0.03 # controls 'bananacity'
+  -x[1]^2/200 - 1/2*(x[2]+B*x[1]^2-100*B)^2
+}
+runTarget(p.log,c(5,5))
+*/
+
+
+//multiply vector by transpose
+// [[Rcpp::export]]
+arma::mat vecXvec(arma::vec vector, int i){
+  arma::mat out = (i*vector) * trans(vector);
+  return(out);
+}
+/***R
+message("Running vecXvec")
+i <- 5
+residual <- c(.25,1.5)
+i*residual %*% t(residual)
+vecXvec(residual,i)
+*/
+
+
+//element wise product of arma matrix
+// [[Rcpp::export]]
+arma::mat schur(arma::mat a, int b){
+  arma::mat out = a * b;
+  return(out);
+}
+/***R
+message("Running schur")
+schur(matrix(1:4,2,2),5)
+*/
+
+
+//element wise addition of arma matrix
+// [[Rcpp::export]]
+arma::mat schurAdd(arma::mat a, int b){
+  arma::mat out = a + b;
+  return(out);
+}
+/***R
+message("Running schurAdd")
+schurAdd(matrix(1:4,2,2),5)
+*/
+
+
+//testing stuff for sigma update routine
+// [[Rcpp::export]]
+arma::mat covup(arma::mat a, int b){
+  arma::mat out = a * (b-1) + (b-1);
+  return(out);
+}
+/***R
+message("Running covup")
+  cov_mat <- matrix(c(5,0,0,0.1),2,2)
+  residual <- c(.25,1.5)
+  i <- 5
+cov_mat*(i-1)+(i-1)
+  covup(cov_mat,i)
+  */
+
+
+//testing stuff for sigma update routine
+// [[Rcpp::export]]
+arma::mat covUpdateTest(arma::mat cov_mat, arma::vec residual, double i){
+  arma::mat out = (cov_mat * (i-1) + (i-1) / i * residual * trans(residual)) / i;
+  return(out);
+}
+/***R
+message("Running covUpdateTest")
+cov_mat <- matrix(c(.32,.6,.2,.5),2,2)
+residual <- c(.98,2.3)
+i <- 4
+(cov_mat * (i-1) + (i-1) / i * residual %*% t(residual)) / i
+covUpdateTest(cov_mat,residual,i)
+*/
+
+
+//testing adapting sigma shape
+// [[Rcpp::export]]
+arma::mat sigmaShape(arma::mat sigma_empirical, arma::vec theta_init){
+  double scaling_sd1 = 2.38/sqrt(theta_init.n_elem);
+  arma::mat sigma_proposal = pow(scaling_sd1,2) * sigma_empirical;
+  return(sigma_proposal);
+}
+/***R
+message("Running sigmaShape")
+sigEmp <- matrix(floor(runif(9,1,10)),3,3)
+thetaInt <- floor(runif(3,1,10))
+#R part
+(2.38/sqrt(length(thetaInt)))^2 * sigEmp
+#C++ part
+sigmaShape(sigEmp,thetaInt)
+*/
+
+
+//testing vector concatenation in armadillo
+// [[Rcpp::export]]
+arma::vec armaConcat(arma::vec vec1, arma::vec vec2){
+  arma::vec output;
+  output = arma::join_cols<arma::mat>(vec1,vec2);
+  return(output);
+}
+/***R
+message("Running armaConcat")
+armaConcat(c(1,2,3),c(4,5,6))
+*/
+
+
+//resizing armadillo vectors
+// [[Rcpp::export]]
+arma::vec resizeVec(arma::vec vector){
+  arma::vec output = vector;
+  output.resize(vector.n_elem-1);
+  return(output);
+}
+/***R
+message("Running resizeVec")
+resizeVec(c(1,2,3,4,5,6))
+*/
+
+
+//testing size adaptation for adaptive MCMC
+//[[Rcpp::export]]
+arma::mat sizeAdapt(arma::mat covmat_proposal_init, int i, int adapt_size_start, double acceptance_rate, double scaling_sd, double adapt_size_cooling = 0.99){
+  arma::mat covmat_proposal = arma::zeros(covmat_proposal_init.n_rows,covmat_proposal_init.n_cols);
+  double scaling_multiplier = exp(pow(adapt_size_cooling,i-adapt_size_start) * (acceptance_rate - 0.234));
+  scaling_sd = scaling_sd * scaling_multiplier;
+  scaling_sd = std::min(scaling_sd,50.0);
+  arma::mat covmat_proposal_new = pow(scaling_sd,2) * covmat_proposal_init;
+  if(!(any(covmat_proposal_new.diag() < 2E-16))){
+    covmat_proposal = covmat_proposal_new;
+  }
+  return(covmat_proposal);
+}
+//[[Rcpp::export]]
+arma::mat shapeAdapt(arma::mat covmat_empirical, arma::vec init_theta, double scaling_sd){
+  scaling_sd = 2.38 / sqrt(init_theta.n_elem);
+  arma::mat covmat_proposal = pow(scaling_sd,2) * covmat_empirical;
+  return(covmat_proposal);
+}
+/***R
+message("Running stuff to check how sigma adaptation routines are working!!!!!!!!! FUCK MY LIFE")
+sizeAdaptR <- function(covmat_proposal_init,i,adapt_size_start,acceptance_rate,scaling_sd,adapt_size_cooling=0.99){
+  covmat_proposal <- matrix(0,nrow(covmat_proposal_init),ncol(covmat_proposal_init))
+  scaling_multiplier <- exp(adapt_size_cooling^(i-adapt_size_start) * (acceptance_rate - 0.234))
+  scaling_sd <- scaling_sd * scaling_multiplier
+  scaling_sd <- min(c(scaling_sd,50))
+  covmat_proposal_new <- scaling_sd^2 * covmat_proposal_init
+  if(!(any(diag(covmat_proposal_new) < 2e-16))){
+    covmat_proposal <- covmat_proposal_new
+  }
+  return(covmat_proposal)
+}
+shapeAdaptR <- function(covmat_empirical,init_theta,scaling_sd){
+  scaling_sd <- 2.38/sqrt(length(init_theta))
+  covmat_proposal <- scaling_sd^2 * covmat_empirical
+  return(covmat_proposal)
+}
+
+covmat_proposal_init <- matrix(floor(runif(4,1,10)),2,2)
+i <- floor(runif(1,1000,1500))
+adapt_size_start <- floor(runif(1,500,600))
+acceptance_rate <- runif(1,0.01,.99)
+scaling_sd <- runif(1,1,1.10)
+covmat_empirical <- matrix(runif(4,0.1,5),2,2)
+init_theta <- runif(2,0.1,5)
+
+sizeAdapt(covmat_proposal_init,i,adapt_size_start,acceptance_rate,scaling_sd)
+sizeAdaptR(covmat_proposal_init,i,adapt_size_start,acceptance_rate,scaling_sd)
+
+shapeAdapt(covmat_empirical,init_theta,scaling_sd)
+shapeAdaptR(covmat_empirical,init_theta,scaling_sd)
+*/

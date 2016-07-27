@@ -191,10 +191,10 @@ ggplot(data=kernBench_df) +
   scale_y_log10()
 
 #matrix
-mat5 <- as.matrix(t(rbind(sapply(rep(seq(1,5,by=1),each=1),function(x) {rnorm(n=5,mean=x,sd=.25)}))))
-mat25 <- as.matrix(t(rbind(sapply(rep(seq(1,25,by=1),each=1),function(x) {rnorm(n=25,mean=x,sd=.25)}))))
-mat50 <- as.matrix(t(rbind(sapply(rep(seq(1,50,by=1),each=1),function(x) {rnorm(n=50,mean=x,sd=.25)}))))
-mat100 <- as.matrix(t(rbind(sapply(rep(seq(1,100,by=1),each=1),function(x) {rnorm(n=100,mean=x,sd=.25)}))))
+mat5 <- as.matrix(rbind(sapply(rep(seq(1,5,by=1),each=1),function(x) {rnorm(n=5,mean=x,sd=.25)})))
+mat25 <- as.matrix(rbind(sapply(rep(seq(1,25,by=1),each=1),function(x) {rnorm(n=25,mean=x,sd=.25)})))
+mat50 <- as.matrix(rbind(sapply(rep(seq(1,50,by=1),each=1),function(x) {rnorm(n=50,mean=x,sd=.25)})))
+mat100 <- as.matrix(rbind(sapply(rep(seq(1,100,by=1),each=1),function(x) {rnorm(n=100,mean=x,sd=.25)})))
 
 mat5bench <- microbenchmark(sim_matrix(mat5,1),sim_matrixC(mat5,1),sim_matrixCpp(mat5,1))
 mat25bench <- microbenchmark(sim_matrix(mat25,1),sim_matrixC(mat25,1),sim_matrixCpp(mat25,1))
