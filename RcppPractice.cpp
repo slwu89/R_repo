@@ -634,6 +634,57 @@ schurAdd(matrix(1:4,2,2),5)
 */
 
 
+//testing stuff for generation of multivariate normal samples
+// [[Rcpp::export]]
+arma::mat mvNormArma1(int n, int ncols){
+  arma::mat out = arma::randn(n,ncols);
+  return(out);
+}
+// [[Rcpp::export]]
+arma::mat mvNormArma2(arma::vec mu, int n){
+  arma::mat out = arma::repmat(mu,1,n).t();
+  return(out);
+}
+// [[Rcpp::export]]
+arma::vec mvrnorm_samp(arma::vec mu, arma::mat sigma) {
+  // arma::vec Y = rnorm(sigma.n_cols,0,1);
+  // arma::rowvec out = arma::trans(mu + Y) * arma::chol(sigma);
+  // return(out);
+  arma::rowvec Y = rnorm(sigma.n_cols,0,1);
+  arma::rowvec out = mu.t() + Y * arma::chol(sigma);
+  return(out.t());
+}
+// [[Rcpp::export]]
+arma::mat mvrnormArma(int n, arma::vec mu, arma::mat sigma) {
+  int ncols = sigma.n_cols; //how many columns in sigma (ie; how many dimension)
+  arma::mat Y = arma::randn(n, ncols); // n draws from N(0,1) 
+  return arma::repmat(mu, 1, n).t() + Y * arma::chol(sigma);
+}
+/***R
+message("Running stuff relevant to test sampling from MVRNORM distribution. Remember..its all for MCMC girl")
+mvNormArma1(1,2)
+mvNormArma1(2,1)
+mvNormArma2(c(5,5),1)
+mvNormArma2(c(5,5),2)
+library(mvtnorm)
+par(mfrow=c(2,3))
+set.seed(123)
+x1 <- replicate(1e5,mvrnorm_samp(c(5,5),matrix(c(5,2.5,2.5,5),2,2)))
+x1b <- aperm(x1,c(3,2,1))
+dim(x1b) <- c(1e5,2)
+set.seed(123)
+x2 <- mvrnormArma(1e5,c(5,5),matrix(c(5,2.5,2.5,5),2,2))
+set.seed(123)
+x3 <- rmvnorm(1e5,c(5,5),matrix(c(5,2.5,2.5,5),2,2))
+hist(x1b,col="red")
+hist(x2,col="green")
+hist(x3,col="blue")
+plot(x1b,col="red")
+plot(x2,col="green")
+plot(x3,col="blue")
+par(mfrow=c(1,1))
+*/
+
 //testing stuff for sigma update routine
 // [[Rcpp::export]]
 arma::mat covup(arma::mat a, int b){
@@ -648,6 +699,74 @@ message("Running covup")
 cov_mat*(i-1)+(i-1)
   covup(cov_mat,i)
   */
+
+
+//testing vector concatenation in armadillo
+// [[Rcpp::export]]
+arma::vec armaConcat(arma::vec vec1, arma::vec vec2){
+  arma::vec output;
+  output = arma::join_cols<arma::mat>(vec1,vec2);
+  return(output);
+}
+/***R
+message("Running armaConcat")
+armaConcat(c(1,2,3),c(4,5,6))
+*/
+
+
+//testing acceptance rate vector concatenation
+// [[Rcpp::export]]
+arma::vec armaConcat2(arma::vec acceptance_series, bool is_accepted){
+  arma::vec is_accepted_vec(1); //might need to declare in function scope? if so define in initialization section for faster computation
+  is_accepted_vec(0) = is_accepted;
+  acceptance_series = arma::join_cols<arma::mat>(is_accepted_vec,acceptance_series);
+  return(acceptance_series);
+}
+/***R
+message("Running armaConcat2")
+armaConcat2(c(1,2,3,5,1,2),FALSE)
+armaConcat2(c(1,2,3,5,1,2),TRUE)
+*/
+
+//test length
+// [[Rcpp::export]]
+double ArmaLength(arma::vec vector){
+  return(vector.n_elem);
+}
+/***R
+message("Running ArmaLength")
+ArmaLength(c(1,2,3))
+*/
+
+//resizing armadillo vectors
+// [[Rcpp::export]]
+arma::vec resizeVec(arma::vec vector){
+  arma::vec output = vector;
+  output.resize(vector.n_elem-1);
+  return(output);
+}
+/***R
+message("Running resizeVec")
+resizeVec(c(1,2,3,4,5,6))
+*/
+
+
+//test rng random number generator for rcpp and r
+// [[Rcpp::export]]
+NumericVector rngTest(){
+  NumericVector output = NumericVector(10);
+  for(int i=0; i<output.size(); i++){
+    output(i) = R::runif(0,1);
+  }
+  return(output);
+}
+/***R
+message("Running rngTest")
+set.seed(123)
+rngTest()
+set.seed(123)
+replicate(10,runif(1))
+*/
 
 
 //testing stuff for sigma update routine
@@ -684,32 +803,6 @@ sigmaShape(sigEmp,thetaInt)
 */
 
 
-//testing vector concatenation in armadillo
-// [[Rcpp::export]]
-arma::vec armaConcat(arma::vec vec1, arma::vec vec2){
-  arma::vec output;
-  output = arma::join_cols<arma::mat>(vec1,vec2);
-  return(output);
-}
-/***R
-message("Running armaConcat")
-armaConcat(c(1,2,3),c(4,5,6))
-*/
-
-
-//resizing armadillo vectors
-// [[Rcpp::export]]
-arma::vec resizeVec(arma::vec vector){
-  arma::vec output = vector;
-  output.resize(vector.n_elem-1);
-  return(output);
-}
-/***R
-message("Running resizeVec")
-resizeVec(c(1,2,3,4,5,6))
-*/
-
-
 //testing size adaptation for adaptive MCMC
 //[[Rcpp::export]]
 arma::mat sizeAdapt(arma::mat covmat_proposal_init, int i, int adapt_size_start, double acceptance_rate, double scaling_sd, double adapt_size_cooling = 0.99){
@@ -728,6 +821,10 @@ arma::mat shapeAdapt(arma::mat covmat_empirical, arma::vec init_theta, double sc
   scaling_sd = 2.38 / sqrt(init_theta.n_elem);
   arma::mat covmat_proposal = pow(scaling_sd,2) * covmat_empirical;
   return(covmat_proposal);
+}
+//[[Rcpp::export]]
+double scalingSD(double scaling_sd, double acceptance_rate, int adapt_size_start, int i, double adapt_size_cooling = 0.99){
+  return(scaling_sd * exp(pow(adapt_size_cooling,i - adapt_size_start) * (acceptance_rate - 0.234)));
 }
 /***R
 message("Running stuff to check how sigma adaptation routines are working!!!!!!!!! FUCK MY LIFE")
@@ -761,4 +858,14 @@ sizeAdaptR(covmat_proposal_init,i,adapt_size_start,acceptance_rate,scaling_sd)
 
 shapeAdapt(covmat_empirical,init_theta,scaling_sd)
 shapeAdaptR(covmat_empirical,init_theta,scaling_sd)
+
+message("stuff for scaling sd")
+
+scalingSDR <- function(scaling_sd,acceptance_rate,adapt_size_start,i,adapt_size_cooling=0.99){
+  return(scaling_sd * exp(adapt_size_cooling^(i - adapt_size_start) * (acceptance_rate - 0.234)))
+}
+
+scalingSD(scaling_sd,acceptance_rate,adapt_size_start,i)
+scalingSDR(scaling_sd,acceptance_rate,adapt_size_start,i)
 */
+
