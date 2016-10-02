@@ -113,6 +113,28 @@ tmp <- flocking_test(10,0.3,.001,TRUE)
 // [[Rcpp::export]]
 List flocking(int n_iter, int n, double safe_dist, double speed, double inertia, bool brownian){
   
+  //Generate xy initial positions.
+  //xypos will hold the current critter position while
+  //xypos0 will hold the position of the critters the previous time.
+  arma::mat xypos(n,2);
+  for(int i=0; i<n; i++){
+    xypos(i,0) = R::runif(0.0,1.0);
+    xypos(i,1) = R::runif(0.0,1.0);
+  }
+  xypos = xypos - 0.5;
+  arma::mat xypos0 = xypos;
+  
+  arma::mat movement0(n,2,arma::fill::zeros);
+  
+  //output object to store xypos at each time step
+  arma::cube xypos_output(n,2,n_iter+1,arma::fill::zeros);
+  xypos_output.slice(0) = xypos; //fill initial positions
+  
+  //loop over time
+  for(int iter=0; iter<n_iter; iter++){
+    
+  }
+  
 }
 
 
