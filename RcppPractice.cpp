@@ -7,6 +7,18 @@ using namespace Rcpp;
 //and realizing that I am just using RStudio as my C++ IDE at this point...
 
 
+// testing using erase on numericvector
+// [[Rcpp::export]]
+NumericVector eraseVector(NumericVector input, int start, int end){
+  input.erase(start,end);
+  return(input);
+}
+/***R
+message("running eraseVector")
+eraseVector(1:100,50,52)
+*/
+
+
 // test creating and subsetting an arma vec
 // [[Rcpp::export]]
 arma::vec armaVec_create(){

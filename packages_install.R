@@ -3,7 +3,8 @@
 ######Sean Wu (no set date)#######################
 ##################################################
 
-packages <- c("Rcpp","RcppArmadillo","tmvtnorm","MASS","microbenchmark","devtools","ape","rjson","RcppProgress","scatterplot3d")
+packages <- c("Rcpp","RcppArmadillo","tmvtnorm","MASS","microbenchmark","devtools","ape","rjson","RcppProgress","scatterplot3d",
+              "igraph")
 install.packages(packages)
 
 library(devtools)
