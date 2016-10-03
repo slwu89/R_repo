@@ -112,7 +112,9 @@ tmp <- flocking_test(10,0.3,.001,TRUE)
 */
 
 // [[Rcpp::export]]
-arma::cube flocking(int n_iter, int n, double safe_dist, double speed, double inertia, bool brownian, bool progress, double brownian_sd=0.1){
+arma::cube flocking(int n_iter, int n, double safe_dist, double speed, double inertia,
+                    bool reflect, double x_min, double x_max, double y_min, double y_max,
+                    bool progress, bool brownian, double brownian_sd=0.1){
   
   //Generate xy initial positions.
   //xypos will hold the current critter position
@@ -208,8 +210,52 @@ arma::cube flocking(int n_iter, int n, double safe_dist, double speed, double in
       movement0 = movement0 + brownian_motion * speed/2;
     }
     
-    //Update the current round's.
-    xypos = xypos + movement0;
+    // //Update the current round's.
+    // xypos = xypos + movement0;
+    
+    //update current xypos while checking for reflective boundary conditions
+    if(!reflect){
+      xypos = xypos + movement0;
+    } else {
+      arma::mat xypos_temp(n,2);
+      for(int i=0; i<xypos.n_rows; i++){
+        
+        // //check x bounds
+        // if(xypos(i,0) + movement0(i,0) > x_max){
+        //   xypos_temp(i,0) = xypos(i,0) - movement0(i,0);
+        // } else if(xypos(i,0) + movement0(i,0) < x_min){
+        //   xypos_temp(i,0) = xypos(i,0) - movement0(i,0);
+        // } else {
+        //   xypos_temp(i,0) = xypos(i,0) + movement0(i,0);
+        // }
+        //   
+        // //check y bounds
+        // if(xypos(i,1) + movement0(i,1) > y_max){
+        //   xypos_temp(i,1) = xypos(i,1) - movement0(i,1);
+        // } else if(xypos(i,1) + movement0(i,1) < x_min){
+        //   xypos_temp(i,1) = xypos(i,1) - movement0(i,1);
+        // } else {
+        //   xypos_temp(i,1) = xypos(i,1) + movement0(i,1);
+        // }
+        
+        //check x bounds
+        if(xypos(i,0) + movement0(i,0) > x_max || xypos(i,0) + movement0(i,0) < x_min){
+          xypos_temp(i,0) = xypos(i,0) - movement0(i,0);
+        } else {
+          xypos_temp(i,0) = xypos(i,0) + movement0(i,0);
+        }
+        
+        //check y bounds
+        if(xypos(i,1) + movement0(i,1) > y_max || xypos(i,1) + movement0(i,1) < y_min){
+          xypos_temp(i,1) = xypos(i,1) - movement0(i,1);
+        } else {
+          xypos_temp(i,1) = xypos(i,1) + movement0(i,1);
+        }
+        
+      }
+      //return bounded xypos
+      xypos = xypos_temp;
+    }
     
     //push output
     xypos_output.slice(iter+1) = xypos;
@@ -226,7 +272,8 @@ arma::cube flocking(int n_iter, int n, double safe_dist, double speed, double in
 library(animation)
 set.seed(1)
 flock_run <- flocking(n_iter = 100,n = 200,safe_dist = 0.1,speed = 0.1,inertia = 0.99,
-                      brownian = TRUE,progress = TRUE,brownian_sd = 0.05)
+                      reflect = TRUE,x_min = -10.0,x_max = 10.0,y_min = -10.0,y_max = 10.0,
+                      progress = TRUE,brownian = TRUE,brownian_sd = 0.05)
 
 #setup_plot opens a blank plotting surface with the correct boundaries
 setup_plot <- function(max_x,min_x,max_y,min_y,bg_col){
@@ -236,54 +283,54 @@ setup_plot <- function(max_x,min_x,max_y,min_y,bg_col){
 
 #animate flocking simulation output
 flocking_animation <- function(input,trace_len=10,bg_col="#010e18",agent_col="#b6ddfc",alpha_agent=0.75,alpha_trace=0.15){
-  
+
   #colors for trace of agent movement
-  trace_col <- rev(colorRampPalette(colors=c(bg_col,agent_col),alpha=alpha_trace)(trace_len)) 
-  
+  trace_col <- rev(colorRampPalette(colors=c(bg_col,agent_col),alpha=alpha_trace)(trace_len))
+
   #set bounds of plot
   max_x <- max(input[,1,])
   min_x <- min(input[,1,])
   max_y <- max(input[,2,])
   min_y <- min(input[,2,])
-  
+
   #loop over time steps
   for(i in 1:dim(input)[3]){
-    
+
     #setup blank plotting surface with correct bounds
     setup_plot(max_x,min_x,max_y,min_y,bg_col)
-    
+
     #plot agents
     points(input[,,i],pch=17,col=adjustcolor(agent_col,alpha.f=alpha_agent))
-    
+
     #plot agent movement trace
     if(i > 1){ #can't draw a trace of 1 point
-      
+
       if(i <= trace_len){ #beginning trace
-        
+
         current_trace <- input[,,i:1] #pull out trace history
-        
+
         for(k in 1:dim(current_trace)[1]){ #loop over agents
           for(j in (dim(current_trace)[3]-1):1){ #loop over trace history
             lines(x=current_trace[k,1,(j+1):j],y=current_trace[k,2,(j+1):j],col=trace_col[j])
           }
         }
-        
+
       } else { #moving-window trace
-        
+
         current_trace <- input[,,i:(i-(trace_len-1))] #pull out trace history
-        
+
         for(k in 1:dim(current_trace)[1]){ #loop over agents
           for(j in (dim(current_trace)[3]-1):1){ #loop over trace history
             lines(x=current_trace[k,1,(j+1):j],y=current_trace[k,2,(j+1):j],col=trace_col[j])
           }
         }
-        
+
       } #end if/else for checking beginning trace or moving-window
-      
+
     } #end trace routine
-    
+
   } #end for loop
-  
+
 }
 
 saveGIF(flocking_animation(flock_run),movie.name="flocking.gif",ani.width=768,ani.height=768,
