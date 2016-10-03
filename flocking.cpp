@@ -294,9 +294,9 @@ arma::cube flocking(int n_iter, int n, double safe_dist, double speed, double in
 /***R
 library(animation)
 set.seed(1)
-flock_run <- flocking(n_iter = 100,n = 200,safe_dist = 0.1,speed = 0.1,inertia = 0.99,
+flock_run <- flocking(n_iter = 100,n = 500,safe_dist = 0.05,speed = 0.1,inertia = 0.99,
                       periodic = FALSE,x_min = -10.0,x_max = 10.0,y_min = -10.0,y_max = 10.0,
-                      progress = TRUE,brownian = TRUE,brownian_sd = 0.05)
+                      progress = TRUE,brownian = TRUE,brownian_sd = 0.01)
 
 #setup_plot opens a blank plotting surface with the correct boundaries
 setup_plot <- function(max_x,min_x,max_y,min_y,bg_col){
@@ -318,6 +318,8 @@ flocking_animation <- function(input,trace_len=10,bg_col="#010e18",agent_col="#b
 
   #loop over time steps
   for(i in 1:dim(input)[3]){
+    
+    print(paste0("plotting i: ",i))
 
     #setup blank plotting surface with correct bounds
     setup_plot(max_x,min_x,max_y,min_y,bg_col)
