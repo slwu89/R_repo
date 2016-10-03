@@ -6,6 +6,10 @@ using namespace Rcpp;
 
 /*
  * Flocking Simulation
+ * flocking patterns among autonomous agents depend on the ideal between agent safe distance;
+ * if two agents breach the safe distance, they will flee each other and follow the nearest agent
+ * outside of the safe distance.
+ * These simple rules can give rise to apparently complex behaviors.
  */
 
 
@@ -184,10 +188,10 @@ arma::cube flocking(int n_iter, int n, double safe_dist, double speed, double in
     
     //check for non-valid values in movement
     for(int i=0; i<movement.n_rows; i++){
-      if(arma::is_finite(movement(i,0))){
+      if(!arma::is_finite(movement(i,0))){
         movement(i,0) = 0.0;
       }
-      if(arma::is_finite(movement(i,1))){
+      if(!arma::is_finite(movement(i,1))){
         movement(i,1) = 0.0;
       }
     }
@@ -219,10 +223,69 @@ arma::cube flocking(int n_iter, int n, double safe_dist, double speed, double in
 }
 
 /***R
+library(animation)
 set.seed(1)
-flock_run <- flocking(n_iter = 1e3,n = 1e2,safe_dist = 0.01,speed = 0.1,inertia = 0.5,
+flock_run <- flocking(n_iter = 1e3,n = 1e2,safe_dist = 0.1,speed = 0.1,inertia = 0.5,
                       brownian = FALSE,progress = TRUE)
 
+#setup_plot opens a blank plotting surface with the correct boundaries
+setup_plot <- function(max_x,min_x,max_y,min_y,bg_col){
+  par(bg=bg_col)
+  plot(0,0,type="n",axes=FALSE,ann=FALSE,xlim=c(min_x,max_x),ylim=c(min_y,max_y))
+}
+
+#animate flocking simulation output
+flocking_animation <- function(input,trace_len=10,bg_col="#010e18",agent_col="#b6ddfc",alpha_agent=0.75,alpha_trace=0.15){
+  
+  #colors for trace of agent movement
+  trace_col <- rev(colorRampPalette(colors=c(bg_col,agent_col),alpha=alpha_trace)(trace_len)) 
+  
+  #set bounds of plot
+  max_x <- max(input[,1,])
+  min_x <- min(input[,1,])
+  max_y <- max(input[,2,])
+  min_y <- min(input[,2,])
+  
+  #loop over time steps
+  for(i in 1:dim(input)[3]){
+    
+    #setup blank plotting surface with correct bounds
+    setup_plot(max_x,min_x,max_y,min_y,bg_col)
+    
+    #plot agents
+    points(input[,,i],pch=17,col=adjustcolor(agent_col,alpha.f=alpha_agent))
+    
+    #plot agent movement trace
+    if(i > 1){ #can't draw a trace of 1 point
+      
+      if(i <= trace_len){ #beginning trace
+        
+        current_trace <- input[,,i:1] #pull out trace history
+        
+        for(k in 1:dim(current_trace)[1]){ #loop over agents
+          for(j in (dim(current_trace)[3]-1):1){ #loop over trace history
+            lines(x=current_trace[k,1,(j+1):j],y=current_trace[k,2,(j+1):j],col=trace_col[j])
+          }
+        }
+        
+      } else { #moving-window trace
+        
+        current_trace <- input[,,i:(i-(trace_len-1))] #pull out trace history
+        
+        for(k in 1:dim(current_trace)[1]){ #loop over agents
+          for(j in (dim(current_trace)[3]-1):1){ #loop over trace history
+            lines(x=current_trace[k,1,(j+1):j],y=current_trace[k,2,(j+1):j],col=trace_col[j])
+          }
+        }
+        
+      } #end if/else for checking beginning trace or moving-window
+      
+    } #end trace routine
+    
+  } #end for loop
+  
+}
+
+saveGIF(flocking_animation(flock_run),movie.name="flocking.gif",ani.width=1024,ani.height=1024,
+        interval=0.1)
 */
-
-
