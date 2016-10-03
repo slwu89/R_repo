@@ -68,9 +68,6 @@ List flocking_test(int n, double safe_dist, double speed, bool brownian){
   }
 
   //matrix of closest agents
-  // arma::colvec close = arma::regspace<arma::colvec>(0,n-1);
-  // arma::mat closest_mat = arma::repmat(close,1,n);
-
   arma::mat closest_index(n,n);
   for(int i=0; i<n; i++){
     arma::uvec order_i = arma::sort_index(distances.row(i));
@@ -102,7 +99,7 @@ List flocking_test(int n, double safe_dist, double speed, bool brownian){
   return(List::create(Named("xypos")=xypos,Named("xypos_sort")=xypos_sort,Named("distances")=distances,
                             Named("closest_index")=closest_index,Named("closest")=closest,Named("ab")=ab,
                             Named("a_prime")=a_prime,Named("b_prime")=b_prime,Named("movement")=movement,
-                            Named("between_movement")=between_movement));
+                            Named("between_movement")=between_movement,Named("xypos1")=xypos1));
 }
 
 /***R
@@ -185,7 +182,15 @@ arma::cube flocking(int n_iter, int n, double safe_dist, double speed, double in
     arma::mat between_movement = between_cpp(xypos,xypos_sort,xypos-movement);
     movement =  element_power_cpp(movement*(-1),between_movement);
     
-    //MIGHT NEED TO CHECK FOR NaN VALUES IN MOVEMENT?
+    //check for non-valid values in movement
+    for(int i=0; i<movement.n_rows; i++){
+      if(arma::is_finite(movement(i,0))){
+        movement(i,0) = 0.0;
+      }
+      if(arma::is_finite(movement(i,1))){
+        movement(i,1) = 0.0;
+      }
+    }
     
     movement0 = movement0*inertia + movement;
     
@@ -212,5 +217,12 @@ arma::cube flocking(int n_iter, int n, double safe_dist, double speed, double in
   //return output
   return(xypos_output);
 }
+
+/***R
+set.seed(1)
+flock_run <- flocking(n_iter = 1e3,n = 1e2,safe_dist = 0.01,speed = 0.1,inertia = 0.5,
+                      brownian = FALSE,progress = TRUE)
+
+*/
 
 
