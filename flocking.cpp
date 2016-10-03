@@ -112,7 +112,7 @@ tmp <- flocking_test(10,0.3,.001,TRUE)
 */
 
 // [[Rcpp::export]]
-arma::cube flocking(int n_iter, int n, double safe_dist, double speed, double inertia, bool brownian, bool progress){
+arma::cube flocking(int n_iter, int n, double safe_dist, double speed, double inertia, bool brownian, bool progress, double brownian_sd=0.1){
   
   //Generate xy initial positions.
   //xypos will hold the current critter position
@@ -202,8 +202,8 @@ arma::cube flocking(int n_iter, int n, double safe_dist, double speed, double in
     if(brownian){
       arma::mat brownian_motion(n,2);
       for(int i=0; i<n; i++){
-        brownian_motion(i,0) = R::runif(0.0,1.0);
-        brownian_motion(i,1) = R::runif(0.0,1.0);
+        brownian_motion(i,0) = R::rnorm(0.0,brownian_sd);
+        brownian_motion(i,1) = R::rnorm(0.0,brownian_sd);
       }
       movement0 = movement0 + brownian_motion * speed/2;
     }
@@ -225,8 +225,8 @@ arma::cube flocking(int n_iter, int n, double safe_dist, double speed, double in
 /***R
 library(animation)
 set.seed(1)
-flock_run <- flocking(n_iter = 1e3,n = 1e2,safe_dist = 0.1,speed = 0.1,inertia = 0.5,
-                      brownian = FALSE,progress = TRUE)
+flock_run <- flocking(n_iter = 100,n = 200,safe_dist = 0.1,speed = 0.1,inertia = 0.99,
+                      brownian = TRUE,progress = TRUE,brownian_sd = 0.05)
 
 #setup_plot opens a blank plotting surface with the correct boundaries
 setup_plot <- function(max_x,min_x,max_y,min_y,bg_col){
@@ -286,6 +286,6 @@ flocking_animation <- function(input,trace_len=10,bg_col="#010e18",agent_col="#b
   
 }
 
-saveGIF(flocking_animation(flock_run),movie.name="flocking.gif",ani.width=1024,ani.height=1024,
-        interval=0.1)
+saveGIF(flocking_animation(flock_run),movie.name="flocking.gif",ani.width=768,ani.height=768,
+        interval=0.125)
 */
