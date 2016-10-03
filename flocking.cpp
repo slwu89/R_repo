@@ -113,7 +113,7 @@ tmp <- flocking_test(10,0.3,.001,TRUE)
 
 // [[Rcpp::export]]
 arma::cube flocking(int n_iter, int n, double safe_dist, double speed, double inertia,
-                    bool reflect, double x_min, double x_max, double y_min, double y_max,
+                    bool periodic, double x_min, double x_max, double y_min, double y_max,
                     bool progress, bool brownian, double brownian_sd=0.1){
   
   //Generate xy initial positions.
@@ -214,7 +214,7 @@ arma::cube flocking(int n_iter, int n, double safe_dist, double speed, double in
     // xypos = xypos + movement0;
     
     //update current xypos while checking for reflective boundary conditions
-    if(!reflect){
+    if(!periodic){
       xypos = xypos + movement0;
     } else {
       arma::mat xypos_temp(n,2);
@@ -228,7 +228,7 @@ arma::cube flocking(int n_iter, int n, double safe_dist, double speed, double in
         // } else {
         //   xypos_temp(i,0) = xypos(i,0) + movement0(i,0);
         // }
-        //   
+        // 
         // //check y bounds
         // if(xypos(i,1) + movement0(i,1) > y_max){
         //   xypos_temp(i,1) = xypos(i,1) - movement0(i,1);
@@ -238,16 +238,39 @@ arma::cube flocking(int n_iter, int n, double safe_dist, double speed, double in
         //   xypos_temp(i,1) = xypos(i,1) + movement0(i,1);
         // }
         
+        // //check x bounds
+        // if(xypos(i,0) + movement0(i,0) > x_max || xypos(i,0) + movement0(i,0) < x_min){
+        //   xypos_temp(i,0) = xypos(i,0) - movement0(i,0);
+        // } else {
+        //   xypos_temp(i,0) = xypos(i,0) + movement0(i,0);
+        // }
+        // 
+        // //check y bounds
+        // if(xypos(i,1) + movement0(i,1) > y_max || xypos(i,1) + movement0(i,1) < y_min){
+        //   xypos_temp(i,1) = xypos(i,1) - movement0(i,1);
+        // } else {
+        //   xypos_temp(i,1) = xypos(i,1) + movement0(i,1);
+        // }
+        
+        //PERIODIC BOUNDS
         //check x bounds
-        if(xypos(i,0) + movement0(i,0) > x_max || xypos(i,0) + movement0(i,0) < x_min){
-          xypos_temp(i,0) = xypos(i,0) - movement0(i,0);
+        if(xypos(i,0) + movement0(i,0) > x_max){
+          double remainder = xypos(i,0) + movement0(i,0) - x_max;
+          xypos_temp(i,0) = x_min + remainder;
+        } else if(xypos(i,0) + movement0(i,0) < x_min){
+          double remainder = xypos(i,0) + movement0(i,0) + x_min;
+          xypos_temp(i,0) = x_max + remainder;
         } else {
           xypos_temp(i,0) = xypos(i,0) + movement0(i,0);
         }
         
         //check y bounds
-        if(xypos(i,1) + movement0(i,1) > y_max || xypos(i,1) + movement0(i,1) < y_min){
-          xypos_temp(i,1) = xypos(i,1) - movement0(i,1);
+        if(xypos(i,1) + movement0(i,1) > y_max){
+          double remainder = xypos(i,1) + movement0(i,1) - y_max;
+          xypos_temp(i,1) = y_min + remainder;
+        } else if(xypos(i,1) + movement0(i,1) < x_min){
+          double remainder = xypos(i,1) + movement0(i,1) + y_min;
+          xypos_temp(i,1) = y_max + remainder;
         } else {
           xypos_temp(i,1) = xypos(i,1) + movement0(i,1);
         }
@@ -272,7 +295,7 @@ arma::cube flocking(int n_iter, int n, double safe_dist, double speed, double in
 library(animation)
 set.seed(1)
 flock_run <- flocking(n_iter = 100,n = 200,safe_dist = 0.1,speed = 0.1,inertia = 0.99,
-                      reflect = TRUE,x_min = -10.0,x_max = 10.0,y_min = -10.0,y_max = 10.0,
+                      periodic = FALSE,x_min = -10.0,x_max = 10.0,y_min = -10.0,y_max = 10.0,
                       progress = TRUE,brownian = TRUE,brownian_sd = 0.05)
 
 #setup_plot opens a blank plotting surface with the correct boundaries
