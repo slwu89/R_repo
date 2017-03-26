@@ -11,6 +11,7 @@ library(viridis)
 library(devtools)
 # install_github("slwu89/slwu89package")
 library(slwu89package)
+library(FAdist)
 
 ggCol <- function (n){
   hues = seq(15, 375, length = n + 1)
@@ -70,7 +71,7 @@ legend ("bottomright",lty=rep(1,4),c("Nelder-Mead","Simulated annealing","Price 
 
 #################################################################
 # Eggholder function test optimization
-# (512,404.2319)
+# global optimum at (512,404.2319)
 #################################################################
 
 egg <- function(xx,extraPar=NULL){
@@ -90,4 +91,41 @@ with(eggSurface,{
   perspCol(x=xx,y=yy,z=zz,color=viridis(60),border=NA,phi=30,theta=100,ticktype="detailed",xlg=F,ylg=F)
 })
 
-eggOptim = priceOptim(loss = egg,par = c(-1,1),extraPar = list(),lower = c(-512,-512),upper = c(512,512),nIter = 1e5,seed = 42,nPop = 1e4,centroid = 4,info = TRUE)
+eggPrice = priceOptim(loss = egg,par = c(-1,1),extraPar = list(),lower = c(-512,-512),upper = c(512,512),nIter = 5e4,seed = 42,nPop = 1e4,centroid = 4,info = TRUE)
+eggNM = optim(par = c(-1,1),fn = egg,method = "Nelder-Mead",control = list(maxit = 1e5))
+eggSANN = optim(par = c(-1,1),fn = egg,method = "SANN",control = list(maxit = 1e5))
+
+
+#################################################################
+# log-logistic MLE test optimization
+#################################################################
+
+alpha = 0.5432
+beta = 2.04214
+xx = seq(0,1e2,by=0.01)
+
+data = rllog(n = 150,shape = alpha,scale = beta)
+
+# negative log likelihood loss function to minimize
+negLL = function(par,extraPar){
+  alpha = par[1]
+  beta = par[2]
+  val = -sum(dllog(x = extraPar$data,shape = alpha,scale = beta,log = TRUE))
+  if(is.nan(val)){
+    return(Inf)
+  } else {
+    return(val)
+  }
+}
+
+llogPrice = priceOptim(loss = negLL,par = c(1,42),extraPar = list(data=data),lower = c(.Machine$double.eps,.Machine$double.eps),upper = c(10,10),
+                       seed = 42,nIter = 1e5,centroid = 3,nPop = 2e4,info = TRUE)
+llogNM = optim(par = c(1,42),fn = negLL,extraPar=list(data=data),method = "Nelder-Mead")
+llogSANN = optim(par = c(1,42),fn = negLL,extraPar=list(data=data),method = "SANN")
+
+plot(x = dllog(xx,shape=alpha,scale=beta),type="l",col=col[1],xlab="",ylab="density")
+grid()
+lines(x = dllog(xx,shape=llogPrice$par[1],scale=llogPrice$par[2]),col=col[2])
+lines(x = dllog(xx,shape=llogSANN$par[1],scale=llogSANN$par[2]),col=col[3])
+lines(x = dllog(xx,shape=llogNM$par[1],scale=llogNM$par[2]),col=col[4])
+legend("topright",lty=rep(1,4),col=col[1:4],legend = c("True function","Price (GNU GSL)","Simulated annealing","Nelder-Mead"))

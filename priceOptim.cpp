@@ -7,27 +7,6 @@ using namespace Rcpp;
 // [[Rcpp::depends(RcppGSL)]]
 // [[Rcpp::plugins(cpp11)]]
 
-NumericVector parMax(NumericVector xx, NumericVector yy){
-  if(xx.length() != yy.length()){
-    stop("parMax: length of xx != length of yy");
-  }
-  NumericVector out(xx.length());
-  for(int i=0; i<xx.length(); i++){
-    out[i] = std::max(xx[i],yy[i]);
-  }
-  return(out);
-}
-
-NumericVector parMin(NumericVector xx, NumericVector yy){
-  if(xx.length() != yy.length()){
-    stop("parMin: length of xx != length of yy");
-  }
-  NumericVector out(xx.length());
-  for(int i=0; i<xx.length(); i++){
-    out[i] = std::min(xx[i],yy[i]);
-  }
-  return(out);
-}
 
 /*
  * priceOptim: a GNU GSL and Rcpp implementation of Price's pseudo-random search algorithm (1977)
@@ -111,7 +90,7 @@ List priceOptim(Function loss, NumericVector par, List extraPar, NumericVector l
     
     newPar = (2.0*newPar) - populationPar[mirrorPar[0]]; // mirroring
     
-    newPar = parMin(parMax(newPar, lower), upper); // impose bounds on new parameter set
+    newPar = Rcpp::pmin(Rcpp::pmax(newPar, lower), upper); // impose bounds on new parameter set
     
     double newLoss = as<double>(loss(newPar,extraPar));
     
