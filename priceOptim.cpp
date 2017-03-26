@@ -133,7 +133,7 @@ List priceOptim(Function loss, NumericVector par, List extraPar, NumericVector l
       Rcout << "iteration: " << it << std::endl;
     }
     
-    it++; // update iterator
+    ++it; // update iterator
   } // end while
   
   auto smallestLoss = std::min_element(std::begin(populationLoss), std::end(populationLoss));
@@ -154,9 +154,9 @@ List priceOptim(Function loss, NumericVector par, List extraPar, NumericVector l
   return(List::create(
       _["value"] = bestLoss,
       _["par"] = bestPar,
-      Named("counts")=R_NilValue,
-      Named("convergence")=int(0),
-      Named("message")=R_NilValue,
-      Named("hessian")=R_NilValue
+      _["counts"]=R_NilValue,
+      _["convergence"]=int(0),
+      _["message"]=R_NilValue,
+      _["hessian"]=R_NilValue
   ));   
 }

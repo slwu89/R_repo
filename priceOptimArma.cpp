@@ -52,7 +52,6 @@ List priceAlgorithmCpp(Function lossfunction, NumericVector initTheta, NumericVe
   populationTheta(0,_) = initTheta;
   
   NumericVector populationNegLL(populationTheta.nrow());
-  Rcout << x << std::endl;
   for(int i=0; i<populationTheta.nrow(); i++){
     populationNegLL(i) = as<double>(lossfunction(populationTheta.row(i),x,y));
   }

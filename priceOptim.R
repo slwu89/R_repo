@@ -49,7 +49,6 @@ lossFunctionPrice <- function(par,x,y){
 
 p1 <- optim(par=c(amplitude=1,period=1,phase=1),fn = lossFunction,method = "Nelder-Mead")
 p2 <- optim(par=c(amplitude=1,period=1,phase=1),fn = lossFunction,method="SANN")
-# see priceOptimArma.cpp for detailed explanation of arguments
 p3 <- priceAlgorithmCpp(lossfunction = lossFunctionPrice,initTheta = c(1,1,1),lowBound = c(0,1e-8,0),upBound = c(100,2*pi,100),
                         x = x,y = y,nIter = 3000,info = TRUE,nPop = 100)
 p4 <- priceOptim(loss = lossPrice,par = c(1,1,1),extraPar = list(x=x,y=y),lower = c(0,1e-8,0),upper = c(100,2*pi,100),
@@ -67,132 +66,26 @@ curve(p4$par[1]*sin(2*pi*x/p4$par[2]+p4$par[3]),lty=1,add=TRUE,col=col[4])
 legend ("bottomright",lty=rep(1,4),c("Nelder-Mead","Simulated annealing","Price (RcppArmadillo)","Price (GNU GSL)"),col=col)
   
 
-
 #################################################################
-# GSL/STL implementation
+# Eggholder function test optimization
+# (512,404.2319)
 #################################################################
 
-Rcpp::sourceCpp('Desktop/git/R_repo/priceOptim.cpp')
+egg <- function(xx,extraPar=NULL){
 
-# fake '...' for Rcpp through named lists
-
-testLoss <- function(par){
-  with(par,{
-    return(2+5)
-  })
-}
-
-testLossAddPar <- function(par){
-  with(par,{
-    return(x+y)
-  })
-}
-
-testAddPars(func = testLoss,addPar = list())
-
-testAddPars(func = testLossAddPar,addPar = list(x=5,y=5))
-
-
-
-
-
-
-# test function for optimization, bounded on (-2.048, 2.048) for all dimensions
-
-rosen <- function(xx,extraPar){
-  d <- length(xx)
-  xi <- xx[1:(d-1)]
-  xnext <- xx[2:d]
+  x1 <- xx[1]
+  x2 <- xx[2]
   
-  sum <- sum(100*(xnext-xi^2)^2 + (xi-1)^2)
+  term1 <- -(x2+47) * sin(sqrt(abs(x2+x1/2+47)))
+  term2 <- -x1 * sin(sqrt(abs(x1-(x2+47))))
   
-  y <- sum
+  y <- term1 + term2
   return(y)
 }
 
-rosenSurface <- makeSurface(xlim = c(-2.048, 2.048),ylim = c(-2.048, 2.048),resolution = 200,func = rosen)
-with(rosenSurface,{
+eggSurface <- makeSurface(xlim = c(-512, 512),ylim = c(-512, 512),resolution = 500,func = egg)
+with(eggSurface,{
   perspCol(x=xx,y=yy,z=zz,color=viridis(60),border=NA,phi=30,theta=100,ticktype="detailed",xlg=F,ylg=F)
 })
 
-
-invisible(priceOptim(loss = rosen,par = c(1.5,0.23),extraPar = list(),lower = c(-2.048,-2.048),upper = c(2.048,2.048),nIter = 1,seed = 42,nPop = 30,centroid = 3))
-
-out = priceOptim(loss = rosen,par = c(-2.001,2.001),extraPar = list(),lower = c(-2.048,-2.048),upper = c(2.048,2.048),nIter = 10,seed = 42,nPop = 100,centroid = 3,info = TRUE)
-
-## -----------------------------------------------------------------------------
-## Pseudorandom Search Optimisation Routine
-## -----------------------------------------------------------------------------
-
-lower =  c(-2.048,-2.048)
-upper = c(2.048,2.048)
-p = c(1.5,0.23)
-# npop     = max(5*length(p), 50) # nr elements in population
-npop=30
-numiter  = 1000                # number of iterations
-centroid = 3               # number of points in centroid
-varleft  = 1e-8                 # relative variation upon stopping
-verbose  = FALSE
-# cost     <- function (par) f(par, ...)
-extraPar = list()
-cost = rosen
-tiny     <- 1e-8
-varleft  <- max(tiny,varleft)
-rsstrace <- NULL
-
-pseudoOptim <- function (f, p, ..., lower, upper, control = list() ) {
-  
-  ## check input
-  npar  <- length(p)
-  
-  populationpar <- matrix(nrow = npop, ncol = npar, byrow = TRUE,
-                          data = lower + runif(npar*npop) * rep((upper - lower), npop))
-  colnames(populationpar) <- names(p)
-  populationpar[1,] <- p
-  
-  populationcost <- apply(populationpar, FUN = cost, MARGIN = 1)
-  iworst         <- which.max(populationcost)
-  worstcost      <- populationcost[iworst]
-  
-  ## Hybridisation phase
-  iter <- 0
-  lastbest  <- -Inf
-  while (iter < numiter && (max(populationcost) - min(populationcost))
-         > (min(populationcost)*varleft)) {
-    iter <- iter + 1
-    
-    selectpar <- sample(1:npop, size = centroid)  # for cross-fertilisation
-    mirrorpar <- sample(1:npop, size = 1)         # for mirroring
-    
-    newpar    <- colMeans(populationpar[selectpar,])    # centroid
-    newpar    <- 2*newpar - populationpar[mirrorpar,]   # mirroring
-    
-    newpar    <- pmin(pmax(newpar, lower), upper)
-    
-    newcost   <- cost(newpar)
-    if(!is.nan(newcost) & !is.na(newcost) & !is.null(newcost)) {
-      if (newcost < worstcost) {
-        populationcost[iworst]  <- newcost
-        populationpar [iworst,] <- newpar
-        iworst     <- which.max(populationcost) # new worst member
-        worstcost  <- populationcost[iworst]
-        bestcost   <- min(populationcost)
-        if (bestcost != lastbest)
-          rsstrace  <- rbind(rsstrace, c(iter, min(populationcost)))
-        lastbest <- bestcost
-      }
-    }
-  } # end while loop
-  
-  ibest    <- which.min(populationcost)
-  bestpar  <- populationpar[ibest,]
-  bestcost <- populationcost[ibest]
-  
-  res <- list(par = bestpar, cost = bestcost, iterations = iter)
-  if (con$verbose) {
-    res$poppar   <- populationpar
-    res$popcost  <- populationcost
-    res$rsstrace <- rsstrace
-  }
-  return (res)
-}
+eggOptim = priceOptim(loss = egg,par = c(-1,1),extraPar = list(),lower = c(-512,-512),upper = c(512,512),nIter = 1e5,seed = 42,nPop = 1e4,centroid = 4,info = TRUE)
