@@ -8,6 +8,8 @@
 ###############################################################
 
 library(viridis)
+library(devtools)
+# install_github("slwu89/slwu89package")
 library(slwu89package)
 
 ggCol <- function (n){
