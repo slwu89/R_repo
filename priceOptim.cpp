@@ -141,13 +141,22 @@ List priceOptim(Function loss, NumericVector par, List extraPar, NumericVector l
   NumericVector bestPar = populationPar[ixBest];
   bestLoss = populationLoss[ixBest];
 
+  // return(List::create(
+  //     _["populationPar"] = populationPar,
+  //     _["populationLoss"] = populationLoss,
+  //     _["worstLoss"] = worstLoss,
+  //     _["ixWorst"] = ixWorst,
+  //     _["bestLoss"] = bestLoss,
+  //     _["bestPar"] = bestPar,
+  //     _["ixBest"] = ixBest
+  // ));   
+  // return named list in same format as default R optim()
   return(List::create(
-      _["populationPar"] = populationPar,
-      _["populationLoss"] = populationLoss,
-      _["worstLoss"] = worstLoss,
-      _["ixWorst"] = ixWorst,
-      _["bestLoss"] = bestLoss,
-      _["bestPar"] = bestPar,
-      _["ixBest"] = ixBest
+      _["value"] = bestLoss,
+      _["par"] = bestPar,
+      Named("counts")=R_NilValue,
+      Named("convergence")=int(0),
+      Named("message")=R_NilValue,
+      Named("hessian")=R_NilValue
   ));   
 }

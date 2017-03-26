@@ -16,18 +16,25 @@ ggCol <- function (n){
 }
 
 Rcpp::sourceCpp('Desktop/git/R_repo/priceOptimArma.cpp')
+Rcpp::sourceCpp('Desktop/git/R_repo/priceOptim.cpp')
 
 # make noisy sine curve to fit; 'data' is in the vectors x and y
 amp <- 6 
 period <- 5 
 phase <- 0.5
 x <- runif(20)*13
-y <- amp*sin(2*pi*x/period+phase) +rnorm(20,mean=0,sd=0.05)
+y <- amp*sin(2*pi*x/period+phase) +rnorm(20,mean=0,sd=0.15)
 
 # loss function for optim
 lossFunction <- function(par){ 
   with(as.list(par),{ 
     sum((amplitude*sin(2*pi*x/period+phase)-y)^2)
+  })
+}
+
+lossPrice <- function(par,extraPar){
+  with(extraPar,{
+    sum((par[1]*sin(2*pi*x/par[2]+par[3])-y)^2)
   })
 }
 
@@ -45,15 +52,19 @@ p2 <- optim(par=c(amplitude=1,period=1,phase=1),fn = lossFunction,method="SANN")
 # see priceOptimArma.cpp for detailed explanation of arguments
 p3 <- priceAlgorithmCpp(lossfunction = lossFunctionPrice,initTheta = c(1,1,1),lowBound = c(0,1e-8,0),upBound = c(100,2*pi,100),
                         x = x,y = y,nIter = 3000,info = TRUE,nPop = 100)
+p4 <- priceOptim(loss = lossPrice,par = c(1,1,1),extraPar = list(x=x,y=y),lower = c(0,1e-8,0),upper = c(100,2*pi,100),
+                 seed = 42,nIter = 3000,centroid = 3,nPop = 100,info = TRUE)
 
-col = ggCol(3)
+
+col = ggCol(4)
 
 plot(x,y,pch=16)
 grid()
 curve(p1$par[1]*sin(2*pi*x/p1$par[2]+p1$par[3]),lty=1,add=TRUE,col=col[1])
 curve(p2$par[1]*sin(2*pi*x/p2$par[2]+p2$par[3]),lty=1,add=TRUE,col=col[2])
 curve(p3$par[1]*sin(2*pi*x/p3$par[2]+p3$par[3]),lty=1,add=TRUE,col=col[3])
-legend ("bottomright",lty=c(1,1,1),c("Nelder-Mead","Simulated annealing","Price"),col=col)
+curve(p4$par[1]*sin(2*pi*x/p4$par[2]+p4$par[3]),lty=1,add=TRUE,col=col[4])
+legend ("bottomright",lty=rep(1,4),c("Nelder-Mead","Simulated annealing","Price (RcppArmadillo)","Price (GNU GSL)"),col=col)
   
 
 
