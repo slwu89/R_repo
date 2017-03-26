@@ -7,16 +7,6 @@ using namespace Rcpp;
 // [[Rcpp::depends(RcppGSL)]]
 // [[Rcpp::plugins(cpp11)]]
 
-// template <class T>
-// inline double 
-
-/*
- * priceOptim
- * 
- * loss: an R function to minimize
- */
-
-
 NumericVector parMax(NumericVector xx, NumericVector yy){
   if(xx.length() != yy.length()){
     stop("parMax: length of xx != length of yy");
@@ -39,6 +29,28 @@ NumericVector parMin(NumericVector xx, NumericVector yy){
   return(out);
 }
 
+/*
+ * priceOptim: a GNU GSL and Rcpp implementation of Price's pseudo-random search algorithm (1977)
+ * Sean Wu
+ * March 25, 2017
+ * 
+ * arguments:
+ * 
+ * loss: an R function to minimize; this function should take two arguments: a parameter vector and a (possibly empty) list of additional parameters/data
+ * par: a vector of initial values of parameters
+ * extraPar: a (possibly empty) list of additional parameters/data to be passed to loss
+ * lower: vector of lower bounds
+ * upper: vector of upper bounds
+ * seed: seed for GNU GSL random number generator
+ * nIter: maximum number of iterations (algorithm may terminate early if convergence detected; see 'tol')
+ * centroid: number of paramter vectors used to calculate centroid
+ * nPop: size of population
+ * info: print iteration number?
+ * tol: relative variance in loss function below which the algorithm stops
+ * 
+ * returns:
+ * 
+ */
 // [[Rcpp::export]]
 List priceOptim(Function loss, NumericVector par, List extraPar, NumericVector lower, NumericVector upper, int seed, int nIter,
                 int centroid = 3, int nPop = 50, bool info = false, double tol = 1E-8){
@@ -138,11 +150,4 @@ List priceOptim(Function loss, NumericVector par, List extraPar, NumericVector l
       _["bestPar"] = bestPar,
       _["ixBest"] = ixBest
   ));   
-}
-
-
-// [[Rcpp::export]]
-void testAddPars(Function func, List addPar){
-  double out = as<double>(func(addPar));
-  Rcout << out << std::endl;
 }
