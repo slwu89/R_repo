@@ -65,7 +65,6 @@ List priceOptim(Function loss, NumericVector par, List extraPar, NumericVector l
   std::vector<double> populationLoss(nPop);
   for(int i=0; i<nPop; i++){
     populationLoss[i] = as<double>(loss(populationPar[i],extraPar));
-    Rcout << "poploss[i]: " << populationLoss[i] << std::endl;
   }
   auto largestLoss = std::max_element(std::begin(populationLoss), std::end(populationLoss));
   double worstLoss = *largestLoss; // largest value of loss function
@@ -118,7 +117,7 @@ List priceOptim(Function loss, NumericVector par, List extraPar, NumericVector l
       }
     }
 
-    if(info && it % 100 == 0){
+    if(info){
       Rcout << "iteration: " << it << std::endl;
     }
     
@@ -134,7 +133,10 @@ List priceOptim(Function loss, NumericVector par, List extraPar, NumericVector l
       _["populationPar"] = populationPar,
       _["populationLoss"] = populationLoss,
       _["worstLoss"] = worstLoss,
-      _["ixWorst"] = ixWorst
+      _["ixWorst"] = ixWorst,
+      _["bestLoss"] = bestLoss,
+      _["bestPar"] = bestPar,
+      _["ixBest"] = ixBest
   ));   
 }
 

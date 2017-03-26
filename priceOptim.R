@@ -107,6 +107,7 @@ with(rosenSurface,{
 
 invisible(priceOptim(loss = rosen,par = c(1.5,0.23),extraPar = list(),lower = c(-2.048,-2.048),upper = c(2.048,2.048),nIter = 1,seed = 42,nPop = 30,centroid = 3))
 
+out = priceOptim(loss = rosen,par = c(-2.001,2.001),extraPar = list(),lower = c(-2.048,-2.048),upper = c(2.048,2.048),nIter = 10,seed = 42,nPop = 100,centroid = 3,info = TRUE)
 
 ## -----------------------------------------------------------------------------
 ## Pseudorandom Search Optimisation Routine
