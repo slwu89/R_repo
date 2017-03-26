@@ -8,16 +8,17 @@
 ###############################################################
 
 library(viridis)
+library(slwu89package)
 
 ggCol <- function (n){
   hues = seq(15, 375, length = n + 1)
   hcl(h = hues, l = 65, c = 100)[1:n]
 }
 
-Rcpp::sourceCpp('Desktop/priceOptimArma.cpp')
+Rcpp::sourceCpp('Desktop/git/R_repo/priceOptimArma.cpp')
 
 # make noisy sine curve to fit; 'data' is in the vectors x and y
-amp <-6 
+amp <- 6 
 period <- 5 
 phase <- 0.5
 x <- runif(20)*13
@@ -52,7 +53,7 @@ grid()
 curve(p1$par[1]*sin(2*pi*x/p1$par[2]+p1$par[3]),lty=1,add=TRUE,col=col[1])
 curve(p2$par[1]*sin(2*pi*x/p2$par[2]+p2$par[3]),lty=1,add=TRUE,col=col[2])
 curve(p3$par[1]*sin(2*pi*x/p3$par[2]+p3$par[3]),lty=1,add=TRUE,col=col[3])
-legend ("bottomright",lty=c(1,1,1),c("Price","Nelder-Mead","Simulated annealing"),col=col)
+legend ("bottomright",lty=c(1,1,1),c("Nelder-Mead","Simulated annealing","Price"),col=col)
   
 
 
@@ -60,7 +61,7 @@ legend ("bottomright",lty=c(1,1,1),c("Price","Nelder-Mead","Simulated annealing"
 # GSL/STL implementation
 #################################################################
 
-Rcpp::sourceCpp('Desktop/priceOptim.cpp')
+Rcpp::sourceCpp('Desktop/git/R_repo/priceOptim.cpp')
 
 # fake '...' for Rcpp through named lists
 
@@ -104,23 +105,25 @@ with(rosenSurface,{
 })
 
 
-priceOptim(loss = rosen,par = c(1.5,0.23),extraPar = list(),lower = c(-2.048,-2.048),upper = c(2.048,2.048),nIter = 10,seed = 42,nPop = 30)
+invisible(priceOptim(loss = rosen,par = c(1.5,0.23),extraPar = list(),lower = c(-2.048,-2.048),upper = c(2.048,2.048),nIter = 1,seed = 42,nPop = 30,centroid = 3))
 
 
 ## -----------------------------------------------------------------------------
 ## Pseudorandom Search Optimisation Routine
 ## -----------------------------------------------------------------------------
 
-lower = c(0,1,0)
-upper = c(1,2,10)
-p = c(0.23,1.2321,5.325)
+lower =  c(-2.048,-2.048)
+upper = c(2.048,2.048)
+p = c(1.5,0.23)
 # npop     = max(5*length(p), 50) # nr elements in population
-npop=10
+npop=30
 numiter  = 1000                # number of iterations
-centroid = 3                  # number of points in centroid
+centroid = 3               # number of points in centroid
 varleft  = 1e-8                 # relative variation upon stopping
 verbose  = FALSE
-cost     <- function (par) f(par, ...)
+# cost     <- function (par) f(par, ...)
+extraPar = list()
+cost = rosen
 tiny     <- 1e-8
 varleft  <- max(tiny,varleft)
 rsstrace <- NULL
@@ -129,34 +132,6 @@ pseudoOptim <- function (f, p, ..., lower, upper, control = list() ) {
   
   ## check input
   npar  <- length(p)
-  # if (npar == 1)
-  #   stop("number of parameters to estimate should be > 1 in pseudoOptim")
-  # 
-  # if (! all(is.finite(lower))) stop("lower cannot be Inf or -Inf")
-  # if (! all(is.finite(upper))) stop("upper cannot be Inf or -Inf")
-  # if (length(lower) != npar & length(lower)!= 1)
-  #   stop("length of 'lower' should be either 1 or equal to number of parameters")
-  # if (length(upper) != npar & length(upper)!= 1)
-  #   stop("length of 'upper' should be either 1 or equal to number of parameters")
-  # 
-  # ## Initialisation
-  # con <- list(npop     = max(5*length(p), 50), # nr elements in population
-  #             numiter  = 10000,                # number of iterations
-  #             centroid = 3,                    # number of points in centroid
-  #             varleft  = 1e-8,                 # relative variation upon stopping
-  #             verbose  = FALSE)
-  # nmsC <- names(con)
-  # 
-  # con[(namc <- names(control))] <- control
-  # if (length(noNms <- namc[!namc %in% nmsC]) > 0)
-  #   stop("unknown names in control: ", paste(noNms, collapse = ", "))
-  # 
-  # npop     <- con$npop
-  # numiter  <- con$numiter
-  # centroid <- con$centroid
-  # varleft  <- con$varleft
-  # 
-
   
   populationpar <- matrix(nrow = npop, ncol = npar, byrow = TRUE,
                           data = lower + runif(npar*npop) * rep((upper - lower), npop))
